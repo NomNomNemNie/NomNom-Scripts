@@ -139,13 +139,14 @@ local ctx = {
     loadUiLibs = loadUiLibs,
 }
 
--- load main.lua
-local function loadModule(path)
-    if typeof(readfile) == "function" and typeof(isfile) == "function" and isfile(path) then
-        return loadstring(readfile(path))()
-    end
-    error("Missing readfile or file: " .. tostring(path))
+-- load main.lua (online)
+local MAIN_URL = "https://raw.githubusercontent.com/NomNomNemNie/NomNom-Scripts/refs/heads/main/Main.lua"
+local ok, src = pcall(function()
+    return game:HttpGet(MAIN_URL)
+end)
+if not ok or typeof(src) ~= "string" then
+    error("Failed to fetch Main.lua")
 end
 
-local main = loadModule("Main.lua")
+local main = loadstring(src)()
 main(ctx)
