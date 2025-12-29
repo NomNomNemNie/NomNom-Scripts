@@ -55,6 +55,7 @@ return function(ctx, misc)
         TeamCheck = State.AimbotTeamCheck ~= false,
         TeamCheckOption = State.AimbotTeamCheckOption or "Team",
         UpdateMode = State.AimbotUpdateMode or "RenderStepped",
+        TriggerEnabled = State.AimbotTriggerEnabled ~= false,
         LockOn = State.AimbotLockOn == true,
         Sensitivity = 1,
         MousemoverSensitivity = math.clamp(tonumber(State.AimbotMousemoverSensitivity) or 1, 0, 1),
@@ -62,6 +63,7 @@ return function(ctx, misc)
         UseCFrame = State.AimbotUseCFrame ~= false,
         AimPart = State.AimbotAimPart or "Head",
         Prediction = math.clamp(tonumber(State.AimbotPrediction) or 0, 0, 1),
+        TriggerKey = State.AimbotTriggerKey or Enum.KeyCode.E,
         Username = State.AimbotUsername,
         Blacklist = State.AimbotBlacklist or {},
         Whitelist = State.AimbotWhitelist or {},
@@ -197,15 +199,13 @@ return function(ctx, misc)
         if not cam or not part then return end
 
         local targetPos = part.Position
-        local pred = math.clamp(tonumber(config.Prediction) or 0, 0, 1)
+        local pred = tonumber(config.Prediction) or 0
         if pred ~= 0 then
             local vel = part.AssemblyLinearVelocity or Vector3.zero
-            targetPos = targetPos + (vel * math.clamp(pred, 0, 1))
+            targetPos = targetPos + (vel * pred)
         end
 
-        local mode = config.LockMode
-
-        if (mode == "CFrame") then
+        if (config.LockMode == "CFrame") then
             local from = cam.CFrame.Position
             local cf = CFrame.new(from, targetPos)
             local alpha = math.clamp(tonumber(config.Sensitivity) or 1, 0, 1)
@@ -215,7 +215,7 @@ return function(ctx, misc)
             if onScreen and typeof(mousemoverel) == "function" then
                 local mousePos = getMouseViewportPosition()
                 local diff = Vector2.new(viewportPos.X, viewportPos.Y) - mousePos
-                local sens = math.clamp(tonumber(config.MousemoverSensitivity) or 1, 0, 1)
+                local sens = math.max(tonumber(config.MousemoverSensitivity) or 1, 0)
                 mousemoverel(diff.X * sens, diff.Y * sens)
             end
         end
@@ -305,6 +305,10 @@ return function(ctx, misc)
                 triggerHeld = true
                 return
             end
+            if input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode == config.TriggerKey then
+                triggerHeld = true
+                return
+            end
         end)
 
         inputConnEnded = UIS.InputEnded:Connect(function(input, gp)
@@ -313,11 +317,18 @@ return function(ctx, misc)
                 triggerHeld = false
                 return
             end
+            if input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode == config.TriggerKey then
+                triggerHeld = false
+                return
+            end
         end)
 
         aimConn = updateSignal:Connect(function(dt)
             if not config.Enabled then return end
-            local active = (triggerHeld == true)
+            local active = true
+            if config.TriggerEnabled == true then
+                active = (triggerHeld == true)
+            end
             if not active then
                 updateFovVisual(false)
                 return
@@ -337,6 +348,7 @@ return function(ctx, misc)
         State.AimbotTeamCheck = config.TeamCheck
         State.AimbotTeamCheckOption = config.TeamCheckOption
         State.AimbotUpdateMode = config.UpdateMode
+        State.AimbotTriggerEnabled = config.TriggerEnabled
         State.AimbotLockOn = config.LockOn
         State.AimbotSensitivity = 1
         State.AimbotMousemoverSensitivity = config.MousemoverSensitivity
@@ -344,6 +356,7 @@ return function(ctx, misc)
         State.AimbotUseCFrame = config.UseCFrame
         State.AimbotAimPart = config.AimPart
         State.AimbotPrediction = config.Prediction
+        State.AimbotTriggerKey = config.TriggerKey
         State.AimbotUsername = config.Username
         State.AimbotBlacklist = config.Blacklist
         State.AimbotWhitelist = config.Whitelist
@@ -385,6 +398,7 @@ return function(ctx, misc)
         if typeof(cfg.TeamCheck) == "boolean" then config.TeamCheck = cfg.TeamCheck end
         if typeof(cfg.TeamCheckOption) == "string" then config.TeamCheckOption = cfg.TeamCheckOption end
         if typeof(cfg.UpdateMode) == "string" then config.UpdateMode = cfg.UpdateMode end
+        if typeof(cfg.TriggerEnabled) == "boolean" then config.TriggerEnabled = cfg.TriggerEnabled end
         if typeof(cfg.LockOn) == "boolean" then config.LockOn = cfg.LockOn end
         if typeof(cfg.Sensitivity) == "number" then config.Sensitivity = 1 end
         if typeof(cfg.MousemoverSensitivity) == "number" then config.MousemoverSensitivity = math.clamp(cfg.MousemoverSensitivity, 0, 1) end
@@ -392,6 +406,13 @@ return function(ctx, misc)
         if typeof(cfg.UseCFrame) == "boolean" then config.UseCFrame = cfg.UseCFrame end
         if typeof(cfg.AimPart) == "string" then config.AimPart = cfg.AimPart end
         if typeof(cfg.Prediction) == "number" then config.Prediction = math.clamp(cfg.Prediction, 0, 1) end
+        if cfg.TriggerKey then
+            if typeof(cfg.TriggerKey) == "EnumItem" and cfg.TriggerKey.EnumType == Enum.KeyCode then
+                config.TriggerKey = cfg.TriggerKey
+            elseif typeof(cfg.TriggerKey) == "string" and Enum.KeyCode[cfg.TriggerKey] then
+                config.TriggerKey = Enum.KeyCode[cfg.TriggerKey]
+            end
+        end
         if typeof(cfg.Username) == "string" then config.Username = cfg.Username end
         if typeof(cfg.Blacklist) == "table" then config.Blacklist = cfg.Blacklist end
         if typeof(cfg.Whitelist) == "table" then config.Whitelist = cfg.Whitelist end
