@@ -6,6 +6,7 @@ return function(ctx, deps)
     local movement = deps.movement
     local visual = deps.visual
     local combat = deps.combat
+    local aimbot = deps.aimbot
 
     local C = {}
 
@@ -57,6 +58,29 @@ return function(ctx, deps)
 
     -- Misc toggles
     function C.setAntiAfk(v) return misc.setAntiAfk and misc.setAntiAfk(v) end
+
+    -- Aimbot
+    function C.setAimbotEnabled(v)
+        State.AimbotEnabled = (v == true)
+        if aimbot then
+            if State.AimbotEnabled then
+                aimbot.Enable()
+            else
+                aimbot.Disable()
+            end
+        end
+    end
+    function C.setAimbotConfig(cfg)
+        if aimbot and aimbot.SetConfig then
+            aimbot.SetConfig(cfg)
+        end
+    end
+    function C.isAimbotEnabled()
+        if aimbot and aimbot.IsEnabled then
+            return aimbot.IsEnabled()
+        end
+        return State.AimbotEnabled == true
+    end
 
     -- Notify helpers (used by UI)
     function C.notifyToggle(name, enabled) return misc.notifyToggle and misc.notifyToggle(name, enabled) end

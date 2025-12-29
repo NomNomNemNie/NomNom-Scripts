@@ -478,11 +478,6 @@ return function(ctx)
             if getgenv().__TEMP_AUTOEXEC_TEST__ then return end
             getgenv().__TEMP_AUTOEXEC_TEST__ = true
             pcall(function()
-                local td = nil
-                pcall(function()
-                    td = game:GetService("TeleportService"):GetLocalPlayerTeleportData()
-                end)
-                if typeof(td) == "table" and td.AutoExecEnabled == false then return end
                 loadstring(game:HttpGet(%q))()
             end)
         ]], url)

@@ -20,7 +20,7 @@ return function(ctx, misc)
     local function showRobloxNotification(a, b) return misc.showRobloxNotification(a, b) end
 
     -- Stats overlay
-    local statsGui, statsFrame, statsTitle, fpsLabel, pingLabel, playersLabel, placeLabel, jobLabel, uptimeLabel, execLabel
+    local statsGui, statsFrame, statsTitle, fpsLabel, pingLabel, playersLabel, placeLabel, jobLabel, uptimeLabel, execLabel, antiAfkLabel
     local statsConn, dragConnBegan, dragConnChanged, dragConnEnded
     local function ensureStatsPanel()
         if statsGui and statsGui.Parent then return end
@@ -32,7 +32,7 @@ return function(ctx, misc)
 
         statsFrame = Instance.new("Frame")
         statsFrame.Name = "Panel"
-        statsFrame.Size = UDim2.fromOffset(300, 160)
+        statsFrame.Size = UDim2.fromOffset(300, 178)
         statsFrame.Position = UDim2.fromOffset(10, 10)
         statsFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
         statsFrame.BackgroundTransparency = 0.2
@@ -63,9 +63,21 @@ return function(ctx, misc)
         execLabel.Text = "Executor: ?"
         execLabel.Parent = statsFrame
 
+        antiAfkLabel = Instance.new("TextLabel")
+        antiAfkLabel.Name = "AntiAfk"
+        antiAfkLabel.BackgroundTransparency = 1
+        antiAfkLabel.Position = UDim2.fromOffset(10, 48)
+        antiAfkLabel.Size = UDim2.fromOffset(280, 16)
+        antiAfkLabel.Font = Enum.Font.SourceSansBold
+        antiAfkLabel.TextSize = 14
+        antiAfkLabel.TextXAlignment = Enum.TextXAlignment.Left
+        antiAfkLabel.TextColor3 = Color3.new(1, 1, 1)
+        antiAfkLabel.Text = "Anti-AFK: ?"
+        antiAfkLabel.Parent = statsFrame
+
         fpsLabel = Instance.new("TextLabel")
         fpsLabel.BackgroundTransparency = 1
-        fpsLabel.Position = UDim2.fromOffset(10, 50)
+        fpsLabel.Position = UDim2.fromOffset(10, 66)
         fpsLabel.Size = UDim2.fromOffset(280, 16)
         fpsLabel.Font = Enum.Font.SourceSansBold
         fpsLabel.TextSize = 14
@@ -76,7 +88,7 @@ return function(ctx, misc)
 
         pingLabel = Instance.new("TextLabel")
         pingLabel.BackgroundTransparency = 1
-        pingLabel.Position = UDim2.fromOffset(10, 68)
+        pingLabel.Position = UDim2.fromOffset(10, 84)
         pingLabel.Size = UDim2.fromOffset(280, 16)
         pingLabel.Font = Enum.Font.SourceSansBold
         pingLabel.TextSize = 14
@@ -87,7 +99,7 @@ return function(ctx, misc)
 
         playersLabel = Instance.new("TextLabel")
         playersLabel.BackgroundTransparency = 1
-        playersLabel.Position = UDim2.fromOffset(10, 86)
+        playersLabel.Position = UDim2.fromOffset(10, 102)
         playersLabel.Size = UDim2.fromOffset(280, 16)
         playersLabel.Font = Enum.Font.SourceSansBold
         playersLabel.TextSize = 14
@@ -99,7 +111,7 @@ return function(ctx, misc)
         uptimeLabel = Instance.new("TextLabel")
         uptimeLabel.Name = "Uptime"
         uptimeLabel.BackgroundTransparency = 1
-        uptimeLabel.Position = UDim2.fromOffset(10, 104)
+        uptimeLabel.Position = UDim2.fromOffset(10, 120)
         uptimeLabel.Size = UDim2.fromOffset(280, 16)
         uptimeLabel.Font = Enum.Font.SourceSansBold
         uptimeLabel.TextSize = 14
@@ -110,7 +122,7 @@ return function(ctx, misc)
 
         placeLabel = Instance.new("TextLabel")
         placeLabel.BackgroundTransparency = 1
-        placeLabel.Position = UDim2.fromOffset(10, 122)
+        placeLabel.Position = UDim2.fromOffset(10, 138)
         placeLabel.Size = UDim2.fromOffset(252, 16)
         placeLabel.Font = Enum.Font.SourceSansBold
         placeLabel.TextSize = 14
@@ -121,7 +133,7 @@ return function(ctx, misc)
         local placeCopy = Instance.new("TextButton")
         placeCopy.Name = "CopyPlace"
         placeCopy.BackgroundTransparency = 1
-        placeCopy.Position = UDim2.fromOffset(268, 122)
+        placeCopy.Position = UDim2.fromOffset(268, 138)
         placeCopy.Size = UDim2.fromOffset(22, 16)
         placeCopy.Font = Enum.Font.SourceSansBold
         placeCopy.TextSize = 14
@@ -140,7 +152,7 @@ return function(ctx, misc)
         jobLabel = Instance.new("TextLabel")
         jobLabel.Name = "Job"
         jobLabel.BackgroundTransparency = 1
-        jobLabel.Position = UDim2.fromOffset(10, 140)
+        jobLabel.Position = UDim2.fromOffset(10, 156)
         jobLabel.Size = UDim2.fromOffset(252, 16)
         jobLabel.Font = Enum.Font.SourceSansBold
         jobLabel.TextSize = 14
@@ -151,7 +163,7 @@ return function(ctx, misc)
         local jobCopy = Instance.new("TextButton")
         jobCopy.Name = "CopyJob"
         jobCopy.BackgroundTransparency = 1
-        jobCopy.Position = UDim2.fromOffset(268, 140)
+        jobCopy.Position = UDim2.fromOffset(268, 156)
         jobCopy.Size = UDim2.fromOffset(22, 16)
         jobCopy.Font = Enum.Font.SourceSansBold
         jobCopy.TextSize = 14
@@ -233,6 +245,9 @@ return function(ctx, misc)
                 frames = 0
                 last = now
                 if fpsLabel then fpsLabel.Text = "FPS: " .. tostring(fps) end
+                if antiAfkLabel then
+                    antiAfkLabel.Text = "Anti-AFK: " .. ((State.AntiAfkEnabled and "Enabled") or "Disabled")
+                end
                 local pingText = "Ping: ?"
 
                 pcall(function()
@@ -524,7 +539,7 @@ return function(ctx, misc)
             pcall(function() cam.CameraType = Enum.CameraType.Custom end)
             return
         end
-        pcall(function() setFreezeLocalCharacter(false) end)
+        pcall(function() setFreezeLocalCharacter(true) end)
         pcall(function() setFreecamInputSink(true) end)
 
         freecamCf = cam.CFrame
@@ -625,6 +640,19 @@ return function(ctx, misc)
                 end
             end
         end)
+    end
+
+    local function clearEspForPlayer(plr)
+        pcall(function()
+            local hl = espObjects[plr]
+            if hl then hl:Destroy() end
+        end)
+        pcall(function()
+            local bb = espInfoObjects[plr]
+            if bb then bb:Destroy() end
+        end)
+        espObjects[plr] = nil
+        espInfoObjects[plr] = nil
     end
 
     local applyEspForPlayer
@@ -863,6 +891,7 @@ return function(ctx, misc)
             end
         end
         pcall(function()
+            hl.Enabled = true
             hl.OutlineColor = State.EspOutlineColor or Color3.fromRGB(255, 255, 255)
             hl.OutlineTransparency = 0
             hl.FillTransparency = 1
@@ -913,6 +942,8 @@ return function(ctx, misc)
             if plr == Player then return end
             if espCharAddedConns[plr] then pcall(function() espCharAddedConns[plr]:Disconnect() end) end
             espCharAddedConns[plr] = plr.CharacterAdded:Connect(function()
+                clearEspForPlayer(plr)
+                task.wait(0.15)
                 kickstartEsp(plr)
             end)
             kickstartEsp(plr)
@@ -936,6 +967,8 @@ return function(ctx, misc)
             if plr ~= Player then
                 if espCharAddedConns[plr] then pcall(function() espCharAddedConns[plr]:Disconnect() end) end
                 espCharAddedConns[plr] = plr.CharacterAdded:Connect(function()
+                    clearEspForPlayer(plr)
+                    task.wait(0.15)
                     kickstartEsp(plr)
                 end)
             end
