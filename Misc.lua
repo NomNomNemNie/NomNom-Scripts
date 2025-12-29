@@ -24,6 +24,8 @@ return function(ctx)
                 local ok, cfg = pcall(function() return HttpService:JSONDecode(raw) end)
                 if not ok or typeof(cfg) ~= "table" then return end
 
+                if typeof(cfg.EspOutlineColorHex) == "string" then State.EspOutlineColorHex = cfg.EspOutlineColorHex end
+
                 if typeof(cfg.DesyncMethod) == "string" then State.DesyncMethod = cfg.DesyncMethod end
                 if typeof(cfg.AutoExecEnabled) == "boolean" then State.AutoExecEnabled = cfg.AutoExecEnabled end
                 if typeof(cfg.AutoExecUrl) == "string" then State.AutoExecUrl = cfg.AutoExecUrl end
@@ -83,6 +85,7 @@ return function(ctx)
         pcall(function()
             if not writefile then return end
             local cfg = {
+                EspOutlineColorHex = State.EspOutlineColorHex,
                 DesyncMethod = State.DesyncMethod,
                 AutoExecEnabled = State.AutoExecEnabled,
                 AutoExecUrl = State.AutoExecUrl,
@@ -398,11 +401,20 @@ return function(ctx)
             antiAfkConn = nil
         end
         if State.AntiAfkEnabled then
-            local vu = game:GetService("VirtualUser")
+            local vu = nil
+            pcall(function() vu = game:GetService("VirtualUser") end)
+            local vim = nil
+            pcall(function() vim = game:GetService("VirtualInputManager") end)
             antiAfkConn = Player.Idled:Connect(function()
                 pcall(function()
-                    vu:CaptureController()
-                    vu:ClickButton2(Vector2.new())
+                    if vu then
+                        vu:CaptureController()
+                        vu:ClickButton2(Vector2.new())
+                    elseif vim then
+                        vim:SendMouseButtonEvent(0, 0, 1, true, game, 0)
+                        task.wait(0.05)
+                        vim:SendMouseButtonEvent(0, 0, 1, false, game, 0)
+                    end
                 end)
             end)
         end

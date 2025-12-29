@@ -761,6 +761,11 @@ return function(ctx, misc)
         end
 
         local bb = ensureEspGui(plr, head)
+        pcall(function()
+            local base = 5.5
+            local extra = math.clamp((tonumber(dist) or 0) / 60, 0, 10)
+            bb.StudsOffset = Vector3.new(0, base + extra, 0)
+        end)
         local frame = bb:FindFirstChild("Bg")
         local stats = frame and frame:FindFirstChild("Stats")
         local nameLbl = frame and frame:FindFirstChild("Name")
@@ -834,14 +839,18 @@ return function(ctx, misc)
             hl.Name = "NomNom_ESP"
             hl.FillTransparency = 1
             hl.OutlineTransparency = 0
-            hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+            hl.OutlineColor = State.EspOutlineColor or Color3.fromRGB(255, 255, 255)
             hl.Adornee = char
             hl.Parent = char
             espObjects[plr] = hl
         else
             hl.Adornee = char
         end
-
+        pcall(function()
+            hl.OutlineColor = State.EspOutlineColor or Color3.fromRGB(255, 255, 255)
+            hl.OutlineTransparency = 0
+            hl.FillTransparency = 1
+        end)
         updateEspGui(plr, hum, (hrp and hrp:IsA("BasePart")) and hrp or part)
         return true
     end
@@ -921,8 +930,7 @@ return function(ctx, misc)
             if not State.PlayerEspEnabled then return end
             for _, plr in ipairs(Players:GetPlayers()) do
                 if plr ~= Player then
-                    local ok, err = pcall(function() applyEspForPlayer(plr) end)
-                    if not ok then warn("NomNom ESP:", err) end
+                    pcall(function() applyEspForPlayer(plr) end)
                 end
             end
         end)

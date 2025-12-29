@@ -359,16 +359,18 @@ return function(ctx, misc)
     end
 
     function M.resetWalkJump()
-        State.DesiredWalkSpeed = State.BaseWalkSpeed
-        State.DesiredJumpPower = State.BaseJumpPower
+        local baseWS = tonumber(State.BaseWalkSpeed) or 16
+        local baseJP = tonumber(State.BaseJumpPower) or 50
+        State.DesiredWalkSpeed = baseWS
+        State.DesiredJumpPower = baseJP
         State.ApplyWalkSpeed = false
         State.ApplyJumpPower = false
         State.ApplyMovementStats = false
         pcall(function()
             local hum = getLocalHumanoid()
             if hum then
-                hum.WalkSpeed = State.DesiredWalkSpeed
-                hum.JumpPower = State.DesiredJumpPower
+                hum.WalkSpeed = baseWS
+                hum.JumpPower = baseJP
             end
         end)
     end
