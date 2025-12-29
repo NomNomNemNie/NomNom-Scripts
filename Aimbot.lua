@@ -14,8 +14,7 @@ return function(ctx, misc)
     local inputConnBegan = nil
     local inputConnEnded = nil
     local currentUpdateMode = "RenderStepped"
-    local triggerActive = false
-    local toggleState = false
+    local triggerHeld = false
     local fovCircle = nil
     local fovOutline = nil
 
@@ -39,7 +38,8 @@ return function(ctx, misc)
         TeamCheck = State.AimbotTeamCheck ~= false,
         TeamCheckOption = State.AimbotTeamCheckOption or "Team",
         UpdateMode = State.AimbotUpdateMode or "RenderStepped",
-        ToggleMode = State.AimbotToggleMode == true,
+        TriggerEnabled = State.AimbotTriggerEnabled ~= false,
+        LockOn = State.AimbotLockOn == true,
         OffsetToMoveDirection = State.AimbotOffsetToMoveDirection == true,
         OffsetIncrement = tonumber(State.AimbotOffsetIncrement) or 0,
         Sensitivity = tonumber(State.AimbotSensitivity) or 0.35,
@@ -48,7 +48,7 @@ return function(ctx, misc)
         UseCFrame = State.AimbotUseCFrame ~= false,
         AimPart = State.AimbotAimPart or "Head",
         Prediction = tonumber(State.AimbotPrediction) or 0,
-        TriggerKey = State.AimbotTriggerKey or Enum.UserInputType.MouseButton2,
+        TriggerKey = State.AimbotTriggerKey or Enum.KeyCode.E,
         Username = State.AimbotUsername,
         Blacklist = State.AimbotBlacklist or {},
         Whitelist = State.AimbotWhitelist or {},
@@ -178,7 +178,18 @@ return function(ctx, misc)
         local vel = hrp.AssemblyLinearVelocity or Vector3.zero
         local step = tonumber(config.OffsetIncrement) or 0
         if step == 0 then return basePos end
+        if vel.Magnitude <= 0.001 then return basePos end
         return basePos + (vel.Unit * step * (delta or 0))
+    end
+
+    local function rotateCharacterToward(targetPos)
+        local char = Player and Player.Character
+        if not char then return end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hrp or not hrp:IsA("BasePart") then return end
+        local look = Vector3.new(targetPos.X, hrp.Position.Y, targetPos.Z)
+        if (look - hrp.Position).Magnitude < 0.01 then return end
+        hrp.CFrame = CFrame.new(hrp.Position, look)
     end
 
     local function aimAt(part, delta)
@@ -194,18 +205,16 @@ return function(ctx, misc)
 
         targetPos = applyOffset(part, targetPos, delta or 0)
 
-        if (config.LockMode == "mousemoverel" or not config.UseCFrame) and typeof(mousemoverel) == "function" then
-            local viewportPos, onScreen = cam:WorldToViewportPoint(targetPos)
-            if onScreen then
-                local mousePos = UIS:GetMouseLocation()
-                local diff = Vector2.new(viewportPos.X, viewportPos.Y) - mousePos
-                local sens = math.max(tonumber(config.MousemoverSensitivity) or 1, 0)
-                mousemoverel(diff.X * sens, diff.Y * sens)
-            end
-        else
-            local smooth = math.clamp(tonumber(config.Sensitivity) or 0.35, 0, 1)
-            local desired = CFrame.new(cam.CFrame.Position, targetPos)
-            cam.CFrame = cam.CFrame:Lerp(desired, smooth)
+        local viewportPos, onScreen = cam:WorldToViewportPoint(targetPos)
+        if onScreen and typeof(mousemoverel) == "function" then
+            local mousePos = UIS:GetMouseLocation()
+            local diff = Vector2.new(viewportPos.X, viewportPos.Y) - mousePos
+            local sens = math.max(tonumber(config.MousemoverSensitivity) or 1, 0)
+            mousemoverel(diff.X * sens, diff.Y * sens)
+        end
+
+        if config.LockOn then
+            pcall(rotateCharacterToward, targetPos)
         end
     end
 
@@ -269,7 +278,7 @@ return function(ctx, misc)
         if inputConnEnded then pcall(function() inputConnEnded:Disconnect() end) end
         inputConnBegan = nil
         inputConnEnded = nil
-        triggerActive = false
+        triggerHeld = false
     end
 
     local function startLoop()
@@ -285,29 +294,35 @@ return function(ctx, misc)
 
         inputConnBegan = UIS.InputBegan:Connect(function(input, gp)
             if gp then return end
-            if input.UserInputType == config.TriggerKey then
-                if config.ToggleMode then
-                    toggleState = not toggleState
-                    triggerActive = toggleState
-                else
-                    triggerActive = true
-                end
+            if input.UserInputType == Enum.UserInputType.MouseButton2 then
+                triggerHeld = true
+                return
+            end
+            if input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode == config.TriggerKey then
+                triggerHeld = true
+                return
             end
         end)
 
         inputConnEnded = UIS.InputEnded:Connect(function(input, gp)
             if gp then return end
-            if input.UserInputType == config.TriggerKey then
-                if not config.ToggleMode then
-                    triggerActive = false
-                end
+            if input.UserInputType == Enum.UserInputType.MouseButton2 then
+                triggerHeld = false
+                return
+            end
+            if input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode == config.TriggerKey then
+                triggerHeld = false
+                return
             end
         end)
 
         aimConn = updateSignal:Connect(function(dt)
             if not config.Enabled then return end
-            if not triggerActive and config.ToggleMode and toggleState == false then return end
-            if not triggerActive then
+            local active = true
+            if config.TriggerEnabled == true then
+                active = (triggerHeld == true)
+            end
+            if not active then
                 updateFovVisual(false)
                 return
             end
@@ -326,7 +341,8 @@ return function(ctx, misc)
         State.AimbotTeamCheck = config.TeamCheck
         State.AimbotTeamCheckOption = config.TeamCheckOption
         State.AimbotUpdateMode = config.UpdateMode
-        State.AimbotToggleMode = config.ToggleMode
+        State.AimbotTriggerEnabled = config.TriggerEnabled
+        State.AimbotLockOn = config.LockOn
         State.AimbotOffsetToMoveDirection = config.OffsetToMoveDirection
         State.AimbotOffsetIncrement = config.OffsetIncrement
         State.AimbotSensitivity = config.Sensitivity
@@ -377,7 +393,8 @@ return function(ctx, misc)
         if typeof(cfg.TeamCheck) == "boolean" then config.TeamCheck = cfg.TeamCheck end
         if typeof(cfg.TeamCheckOption) == "string" then config.TeamCheckOption = cfg.TeamCheckOption end
         if typeof(cfg.UpdateMode) == "string" then config.UpdateMode = cfg.UpdateMode end
-        if typeof(cfg.ToggleMode) == "boolean" then config.ToggleMode = cfg.ToggleMode end
+        if typeof(cfg.TriggerEnabled) == "boolean" then config.TriggerEnabled = cfg.TriggerEnabled end
+        if typeof(cfg.LockOn) == "boolean" then config.LockOn = cfg.LockOn end
         if typeof(cfg.OffsetToMoveDirection) == "boolean" then config.OffsetToMoveDirection = cfg.OffsetToMoveDirection end
         if typeof(cfg.OffsetIncrement) == "number" then config.OffsetIncrement = math.clamp(cfg.OffsetIncrement, -1000, 1000) end
         if typeof(cfg.Sensitivity) == "number" then config.Sensitivity = math.clamp(cfg.Sensitivity, 0, 1) end
@@ -387,10 +404,10 @@ return function(ctx, misc)
         if typeof(cfg.AimPart) == "string" then config.AimPart = cfg.AimPart end
         if typeof(cfg.Prediction) == "number" then config.Prediction = math.clamp(cfg.Prediction, -1, 1) end
         if cfg.TriggerKey then
-            if typeof(cfg.TriggerKey) == "EnumItem" then
+            if typeof(cfg.TriggerKey) == "EnumItem" and cfg.TriggerKey.EnumType == Enum.KeyCode then
                 config.TriggerKey = cfg.TriggerKey
-            elseif typeof(cfg.TriggerKey) == "string" and Enum.UserInputType[cfg.TriggerKey] then
-                config.TriggerKey = Enum.UserInputType[cfg.TriggerKey]
+            elseif typeof(cfg.TriggerKey) == "string" and Enum.KeyCode[cfg.TriggerKey] then
+                config.TriggerKey = Enum.KeyCode[cfg.TriggerKey]
             end
         end
         if typeof(cfg.Username) == "string" then config.Username = cfg.Username end
