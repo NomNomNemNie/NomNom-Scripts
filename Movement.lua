@@ -336,14 +336,34 @@ return function(ctx, misc)
     -- Movement stats loops
     local loopWalkSpeedConn = nil
     local loopJumpPowerConn = nil
-    local function startLoopWalkSpeed()
-        if loopWalkSpeedConn then return end
-        loopWalkSpeedConn = RunService.Heartbeat:Connect(function()
+    local cframeWalkConn = nil
+    local function updateCframeWalk()
+        if cframeWalkConn then
+            pcall(function() cframeWalkConn:Disconnect() end)
+            cframeWalkConn = nil
+        end
+        if not (State.ApplyMovementStats and State.ApplyWalkSpeed) then return end
+        cframeWalkConn = RunService.RenderStepped:Connect(function(dt)
+            if not (State.ApplyMovementStats and State.ApplyWalkSpeed) then return end
             local hum = getLocalHumanoid()
-            if State.ApplyMovementStats and State.ApplyWalkSpeed and hum and tonumber(State.DesiredWalkSpeed) then
-                pcall(function() hum.WalkSpeed = State.DesiredWalkSpeed end)
-            end
+            local hrp = getLocalHRP()
+            if not hum or not hrp then return end
+            local desired = tonumber(State.DesiredWalkSpeed)
+            if not desired then return end
+            local base = tonumber(State.BaseWalkSpeed) or 16
+            local extra = math.max(0, desired - base)
+            if extra <= 0 then return end
+            local md = hum.MoveDirection
+            if md.Magnitude <= 0.05 then return end
+            local step = extra * math.clamp(dt, 0, 0.05)
+            pcall(function()
+                hrp.CFrame = hrp.CFrame + (md.Unit * step)
+            end)
         end)
+    end
+    local function startLoopWalkSpeed()
+        -- WalkSpeed is implemented via CFrame walk; keep conn slot for compatibility
+        pcall(updateCframeWalk)
     end
 
     local function startLoopJumpPower()
@@ -359,6 +379,7 @@ return function(ctx, misc)
         task.defer(function()
             pcall(startLoopWalkSpeed)
             pcall(startLoopJumpPower)
+            pcall(updateCframeWalk)
         end)
     end
 
@@ -370,6 +391,12 @@ return function(ctx, misc)
         State.ApplyWalkSpeed = false
         State.ApplyJumpPower = false
         State.ApplyMovementStats = false
+        pcall(function()
+            if cframeWalkConn then
+                cframeWalkConn:Disconnect()
+                cframeWalkConn = nil
+            end
+        end)
         pcall(function()
             local hum = getLocalHumanoid()
             if hum then
