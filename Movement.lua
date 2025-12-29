@@ -331,72 +331,97 @@ return function(ctx, misc)
             height = math.clamp(height, 0, 500)
             floatForce.Position = Vector3.new(cur.Position.X, cur.Position.Y + height, cur.Position.Z)
         end)
+		pcall(function()
+			hrp.AssemblyLinearVelocity = Vector3.zero
+			hrp.AssemblyAngularVelocity = Vector3.zero
+		end)
     end
 
-    -- Movement stats loops
-    local loopWalkSpeedConn = nil
+    -- Movement stats: WalkSpeed implemented as collision-aware CFrame walk using multiplier
     local loopJumpPowerConn = nil
     local cframeWalkConn = nil
-    local function updateCframeWalk()
+
+    local function stopCframeWalk()
         if cframeWalkConn then
             pcall(function() cframeWalkConn:Disconnect() end)
             cframeWalkConn = nil
         end
+    end
+
+    local function startCframeWalk()
+        stopCframeWalk()
         if not (State.ApplyMovementStats and State.ApplyWalkSpeed) then return end
+
         cframeWalkConn = RunService.RenderStepped:Connect(function(dt)
             if not (State.ApplyMovementStats and State.ApplyWalkSpeed) then return end
             local hum = getLocalHumanoid()
             local hrp = getLocalHRP()
             if not hum or not hrp then return end
-            local desired = tonumber(State.DesiredWalkSpeed)
-            if not desired then return end
+
             local base = tonumber(State.BaseWalkSpeed) or 16
+            local mult = tonumber(State.DesiredWalkSpeed) or 1
+            local desired = base * mult
             local extra = math.max(0, desired - base)
             if extra <= 0 then return end
+
             local md = hum.MoveDirection
             if md.Magnitude <= 0.05 then return end
+
             local step = extra * math.clamp(dt, 0, 0.05)
+            if step <= 0 then return end
+            local dir = md.Unit * step
+
+            if not State.NoclipEnabled then
+                local params = RaycastParams.new()
+                params.FilterType = Enum.RaycastFilterType.Blacklist
+                params.FilterDescendantsInstances = { Player.Character }
+                params.IgnoreWater = true
+
+                local origin = hrp.Position
+                local result = workspace:Raycast(origin, dir, params)
+                if result then
+                    local safe = math.max(0, (result.Distance or 0) - 1.25)
+                    if safe <= 0 then
+                        return
+                    end
+                    dir = md.Unit * safe
+                end
+            end
+
             pcall(function()
-                hrp.CFrame = hrp.CFrame + (md.Unit * step)
+                hrp.CFrame = hrp.CFrame + dir
             end)
         end)
-    end
-    local function startLoopWalkSpeed()
-        -- WalkSpeed is implemented via CFrame walk; keep conn slot for compatibility
-        pcall(updateCframeWalk)
     end
 
     local function startLoopJumpPower()
         if loopJumpPowerConn then return end
         loopJumpPowerConn = RunService.Heartbeat:Connect(function()
             local hum = getLocalHumanoid()
-            if State.ApplyMovementStats and State.ApplyJumpPower and hum and tonumber(State.DesiredJumpPower) then
-                pcall(function() hum.JumpPower = State.DesiredJumpPower end)
+            if State.ApplyMovementStats and State.ApplyJumpPower and hum then
+                local base = tonumber(State.BaseJumpPower) or 50
+                local mult = tonumber(State.DesiredJumpPower) or 1
+                pcall(function() hum.JumpPower = base * mult end)
             end
         end)
     end
+
     function M.startLoops()
         task.defer(function()
-            pcall(startLoopWalkSpeed)
+            pcall(startCframeWalk)
             pcall(startLoopJumpPower)
-            pcall(updateCframeWalk)
         end)
     end
 
     function M.resetWalkJump()
         local baseWS = tonumber(State.BaseWalkSpeed) or 16
         local baseJP = tonumber(State.BaseJumpPower) or 50
-        State.DesiredWalkSpeed = baseWS
-        State.DesiredJumpPower = baseJP
+        State.DesiredWalkSpeed = 1
+        State.DesiredJumpPower = 1
         State.ApplyWalkSpeed = false
         State.ApplyJumpPower = false
         State.ApplyMovementStats = false
-        pcall(function()
-            if cframeWalkConn then
-                cframeWalkConn:Disconnect()
-                cframeWalkConn = nil
-            end
-        end)
+        pcall(stopCframeWalk)
         pcall(function()
             local hum = getLocalHumanoid()
             if hum then
