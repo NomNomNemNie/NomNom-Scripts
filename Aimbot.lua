@@ -55,7 +55,7 @@ return function(ctx, misc)
         TeamCheck = State.AimbotTeamCheck ~= false,
         TeamCheckOption = State.AimbotTeamCheckOption or "Team",
         UpdateMode = State.AimbotUpdateMode or "RenderStepped",
-        TriggerEnabled = true,
+        TriggerEnabled = State.AimbotTriggerEnabled ~= false,
         LockOn = State.AimbotLockOn == true,
         Sensitivity = 1,
         MousemoverSensitivity = math.clamp(tonumber(State.AimbotMousemoverSensitivity) or 1, 0, 1),
@@ -202,7 +202,7 @@ return function(ctx, misc)
         local pred = math.clamp(tonumber(config.Prediction) or 0, 0, 1)
         if pred ~= 0 then
             local vel = part.AssemblyLinearVelocity or Vector3.zero
-            targetPos = targetPos + (vel * pred)
+            targetPos = targetPos + (vel * math.clamp(pred, 0, 1))
         end
 
         local mode = config.LockMode
@@ -330,7 +330,7 @@ return function(ctx, misc)
 
         aimConn = updateSignal:Connect(function(dt)
             if not config.Enabled then return end
-            local active = false
+            local active = true
             if config.TriggerEnabled == true then
                 active = (triggerHeld == true)
             end
@@ -353,7 +353,7 @@ return function(ctx, misc)
         State.AimbotTeamCheck = config.TeamCheck
         State.AimbotTeamCheckOption = config.TeamCheckOption
         State.AimbotUpdateMode = config.UpdateMode
-        State.AimbotTriggerEnabled = true
+        State.AimbotTriggerEnabled = config.TriggerEnabled
         State.AimbotLockOn = config.LockOn
         State.AimbotSensitivity = 1
         State.AimbotMousemoverSensitivity = config.MousemoverSensitivity
@@ -403,6 +403,7 @@ return function(ctx, misc)
         if typeof(cfg.TeamCheck) == "boolean" then config.TeamCheck = cfg.TeamCheck end
         if typeof(cfg.TeamCheckOption) == "string" then config.TeamCheckOption = cfg.TeamCheckOption end
         if typeof(cfg.UpdateMode) == "string" then config.UpdateMode = cfg.UpdateMode end
+        if typeof(cfg.TriggerEnabled) == "boolean" then config.TriggerEnabled = cfg.TriggerEnabled end
         if typeof(cfg.LockOn) == "boolean" then config.LockOn = cfg.LockOn end
         if typeof(cfg.Sensitivity) == "number" then config.Sensitivity = 1 end
         if typeof(cfg.MousemoverSensitivity) == "number" then config.MousemoverSensitivity = math.clamp(cfg.MousemoverSensitivity, 0, 1) end
