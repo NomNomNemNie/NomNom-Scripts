@@ -62,7 +62,6 @@ return function(ctx, misc)
         UseCFrame = State.AimbotUseCFrame ~= false,
         AimPart = State.AimbotAimPart or "Head",
         Prediction = math.clamp(tonumber(State.AimbotPrediction) or 0, 0, 1),
-        TriggerKey = State.AimbotTriggerKey or Enum.KeyCode.Unknown,
         Username = State.AimbotUsername,
         Blacklist = State.AimbotBlacklist or {},
         Whitelist = State.AimbotWhitelist or {},
@@ -306,19 +305,11 @@ return function(ctx, misc)
                 triggerHeld = true
                 return
             end
-            if config.TriggerKey ~= Enum.KeyCode.Unknown and input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode == config.TriggerKey then
-                triggerHeld = true
-                return
-            end
         end)
 
         inputConnEnded = UIS.InputEnded:Connect(function(input, gp)
             if gp then return end
             if input.UserInputType == Enum.UserInputType.MouseButton2 then
-                triggerHeld = false
-                return
-            end
-            if config.TriggerKey ~= Enum.KeyCode.Unknown and input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode == config.TriggerKey then
                 triggerHeld = false
                 return
             end
@@ -353,7 +344,6 @@ return function(ctx, misc)
         State.AimbotUseCFrame = config.UseCFrame
         State.AimbotAimPart = config.AimPart
         State.AimbotPrediction = config.Prediction
-        State.AimbotTriggerKey = config.TriggerKey
         State.AimbotUsername = config.Username
         State.AimbotBlacklist = config.Blacklist
         State.AimbotWhitelist = config.Whitelist
@@ -402,13 +392,6 @@ return function(ctx, misc)
         if typeof(cfg.UseCFrame) == "boolean" then config.UseCFrame = cfg.UseCFrame end
         if typeof(cfg.AimPart) == "string" then config.AimPart = cfg.AimPart end
         if typeof(cfg.Prediction) == "number" then config.Prediction = math.clamp(cfg.Prediction, 0, 1) end
-        if cfg.TriggerKey then
-            if typeof(cfg.TriggerKey) == "EnumItem" and cfg.TriggerKey.EnumType == Enum.KeyCode then
-                config.TriggerKey = cfg.TriggerKey
-            elseif typeof(cfg.TriggerKey) == "string" and Enum.KeyCode[cfg.TriggerKey] then
-                config.TriggerKey = Enum.KeyCode[cfg.TriggerKey]
-            end
-        end
         if typeof(cfg.Username) == "string" then config.Username = cfg.Username end
         if typeof(cfg.Blacklist) == "table" then config.Blacklist = cfg.Blacklist end
         if typeof(cfg.Whitelist) == "table" then config.Whitelist = cfg.Whitelist end
