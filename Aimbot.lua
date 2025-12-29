@@ -55,16 +55,14 @@ return function(ctx, misc)
         TeamCheck = State.AimbotTeamCheck ~= false,
         TeamCheckOption = State.AimbotTeamCheckOption or "Team",
         UpdateMode = State.AimbotUpdateMode or "RenderStepped",
-        TriggerEnabled = State.AimbotTriggerEnabled ~= false,
+        TriggerEnabled = true,
         LockOn = State.AimbotLockOn == true,
-        OffsetToMoveDirection = State.AimbotOffsetToMoveDirection == true,
-        OffsetIncrement = tonumber(State.AimbotOffsetIncrement) or 0,
-        Sensitivity = tonumber(State.AimbotSensitivity) or 0.35,
-        MousemoverSensitivity = tonumber(State.AimbotMousemoverSensitivity) or 1,
+        Sensitivity = 1,
+        MousemoverSensitivity = math.clamp(tonumber(State.AimbotMousemoverSensitivity) or 1, 0, 1),
         LockMode = State.AimbotLockMode or "CFrame",
         UseCFrame = State.AimbotUseCFrame ~= false,
         AimPart = State.AimbotAimPart or "Head",
-        Prediction = tonumber(State.AimbotPrediction) or 0,
+        Prediction = math.clamp(tonumber(State.AimbotPrediction) or 0, 0, 1),
         TriggerKey = State.AimbotTriggerKey or Enum.KeyCode.E,
         Username = State.AimbotUsername,
         Blacklist = State.AimbotBlacklist or {},
@@ -186,19 +184,6 @@ return function(ctx, misc)
         return bestPart
     end
 
-    local function applyOffset(part, basePos, delta)
-        if not config.OffsetToMoveDirection then
-            return basePos
-        end
-        local hrp = part.Parent and part.Parent:FindFirstChild("HumanoidRootPart")
-        if not hrp then return basePos end
-        local vel = hrp.AssemblyLinearVelocity or Vector3.zero
-        local step = tonumber(config.OffsetIncrement) or 0
-        if step == 0 then return basePos end
-        if vel.Magnitude <= 0.001 then return basePos end
-        return basePos + (vel.Unit * step * (delta or 0))
-    end
-
     local function rotateCharacterToward(targetPos)
         local char = Player and Player.Character
         if not char then return end
@@ -214,20 +199,30 @@ return function(ctx, misc)
         if not cam or not part then return end
 
         local targetPos = part.Position
-        local pred = tonumber(config.Prediction) or 0
+        local pred = math.clamp(tonumber(config.Prediction) or 0, 0, 1)
         if pred ~= 0 then
             local vel = part.AssemblyLinearVelocity or Vector3.zero
             targetPos = targetPos + (vel * pred)
         end
 
-        targetPos = applyOffset(part, targetPos, delta or 0)
+        local mode = config.LockMode
+        if config.TriggerEnabled == true then
+            mode = "CFrame"
+        end
 
-        local viewportPos, onScreen = cam:WorldToViewportPoint(targetPos)
-        if onScreen and typeof(mousemoverel) == "function" then
-            local mousePos = getMouseViewportPosition()
-            local diff = Vector2.new(viewportPos.X, viewportPos.Y) - mousePos
-            local sens = math.max(tonumber(config.MousemoverSensitivity) or 1, 0)
-            mousemoverel(diff.X * sens, diff.Y * sens)
+        if (mode == "CFrame") then
+            local from = cam.CFrame.Position
+            local cf = CFrame.new(from, targetPos)
+            local alpha = math.clamp(tonumber(config.Sensitivity) or 1, 0, 1)
+            cam.CFrame = cam.CFrame:Lerp(cf, alpha)
+        else
+            local viewportPos, onScreen = cam:WorldToViewportPoint(targetPos)
+            if onScreen and typeof(mousemoverel) == "function" then
+                local mousePos = getMouseViewportPosition()
+                local diff = Vector2.new(viewportPos.X, viewportPos.Y) - mousePos
+                local sens = math.clamp(tonumber(config.MousemoverSensitivity) or 1, 0, 1)
+                mousemoverel(diff.X * sens, diff.Y * sens)
+            end
         end
 
         if config.LockOn then
@@ -335,7 +330,7 @@ return function(ctx, misc)
 
         aimConn = updateSignal:Connect(function(dt)
             if not config.Enabled then return end
-            local active = true
+            local active = false
             if config.TriggerEnabled == true then
                 active = (triggerHeld == true)
             end
@@ -358,11 +353,9 @@ return function(ctx, misc)
         State.AimbotTeamCheck = config.TeamCheck
         State.AimbotTeamCheckOption = config.TeamCheckOption
         State.AimbotUpdateMode = config.UpdateMode
-        State.AimbotTriggerEnabled = config.TriggerEnabled
+        State.AimbotTriggerEnabled = true
         State.AimbotLockOn = config.LockOn
-        State.AimbotOffsetToMoveDirection = config.OffsetToMoveDirection
-        State.AimbotOffsetIncrement = config.OffsetIncrement
-        State.AimbotSensitivity = config.Sensitivity
+        State.AimbotSensitivity = 1
         State.AimbotMousemoverSensitivity = config.MousemoverSensitivity
         State.AimbotLockMode = config.LockMode
         State.AimbotUseCFrame = config.UseCFrame
@@ -410,16 +403,13 @@ return function(ctx, misc)
         if typeof(cfg.TeamCheck) == "boolean" then config.TeamCheck = cfg.TeamCheck end
         if typeof(cfg.TeamCheckOption) == "string" then config.TeamCheckOption = cfg.TeamCheckOption end
         if typeof(cfg.UpdateMode) == "string" then config.UpdateMode = cfg.UpdateMode end
-        if typeof(cfg.TriggerEnabled) == "boolean" then config.TriggerEnabled = cfg.TriggerEnabled end
         if typeof(cfg.LockOn) == "boolean" then config.LockOn = cfg.LockOn end
-        if typeof(cfg.OffsetToMoveDirection) == "boolean" then config.OffsetToMoveDirection = cfg.OffsetToMoveDirection end
-        if typeof(cfg.OffsetIncrement) == "number" then config.OffsetIncrement = math.clamp(cfg.OffsetIncrement, -1000, 1000) end
-        if typeof(cfg.Sensitivity) == "number" then config.Sensitivity = math.clamp(cfg.Sensitivity, 0, 1) end
-        if typeof(cfg.MousemoverSensitivity) == "number" then config.MousemoverSensitivity = math.clamp(cfg.MousemoverSensitivity, 0, 10) end
+        if typeof(cfg.Sensitivity) == "number" then config.Sensitivity = 1 end
+        if typeof(cfg.MousemoverSensitivity) == "number" then config.MousemoverSensitivity = math.clamp(cfg.MousemoverSensitivity, 0, 1) end
         if typeof(cfg.LockMode) == "string" then config.LockMode = cfg.LockMode end
         if typeof(cfg.UseCFrame) == "boolean" then config.UseCFrame = cfg.UseCFrame end
         if typeof(cfg.AimPart) == "string" then config.AimPart = cfg.AimPart end
-        if typeof(cfg.Prediction) == "number" then config.Prediction = math.clamp(cfg.Prediction, -1, 1) end
+        if typeof(cfg.Prediction) == "number" then config.Prediction = math.clamp(cfg.Prediction, 0, 1) end
         if cfg.TriggerKey then
             if typeof(cfg.TriggerKey) == "EnumItem" and cfg.TriggerKey.EnumType == Enum.KeyCode then
                 config.TriggerKey = cfg.TriggerKey
