@@ -455,8 +455,21 @@ return function(ctx, misc)
             freecamSinkBound = true
             pcall(function()
                 CAS:BindActionAtPriority("NomNom_FreecamSink", freecamSinkAction, false, 9999,
+                    -- keyboard (movement + common)
                     Enum.KeyCode.W, Enum.KeyCode.A, Enum.KeyCode.S, Enum.KeyCode.D,
-                    Enum.KeyCode.Space, Enum.KeyCode.LeftControl, Enum.KeyCode.LeftShift
+                    Enum.KeyCode.Up, Enum.KeyCode.Down, Enum.KeyCode.Left, Enum.KeyCode.Right,
+                    Enum.KeyCode.Space, Enum.KeyCode.LeftControl, Enum.KeyCode.LeftShift,
+                    Enum.KeyCode.RightControl, Enum.KeyCode.RightShift,
+                    Enum.KeyCode.E, Enum.KeyCode.Q,
+                    -- gamepad
+                    Enum.KeyCode.Thumbstick1, Enum.KeyCode.Thumbstick2,
+                    Enum.KeyCode.DPadUp, Enum.KeyCode.DPadDown, Enum.KeyCode.DPadLeft, Enum.KeyCode.DPadRight,
+                    Enum.KeyCode.ButtonA, Enum.KeyCode.ButtonB, Enum.KeyCode.ButtonX, Enum.KeyCode.ButtonY,
+                    Enum.KeyCode.ButtonL1, Enum.KeyCode.ButtonR1, Enum.KeyCode.ButtonL2, Enum.KeyCode.ButtonR2,
+                    Enum.KeyCode.ButtonL3, Enum.KeyCode.ButtonR3,
+                    -- touch & mouse movement/wheel (do NOT include MouseButton1/2 so clicking still works)
+                    Enum.UserInputType.Touch,
+                    Enum.UserInputType.MouseMovement, Enum.UserInputType.MouseWheel
                 )
             end)
         elseif (not on) and freecamSinkBound then
@@ -841,10 +854,13 @@ return function(ctx, misc)
             hl.OutlineTransparency = 0
             hl.OutlineColor = State.EspOutlineColor or Color3.fromRGB(255, 255, 255)
             hl.Adornee = char
-            hl.Parent = char
+            hl.Parent = workspace
             espObjects[plr] = hl
         else
             hl.Adornee = char
+            if hl.Parent ~= workspace then
+                hl.Parent = workspace
+            end
         end
         pcall(function()
             hl.OutlineColor = State.EspOutlineColor or Color3.fromRGB(255, 255, 255)

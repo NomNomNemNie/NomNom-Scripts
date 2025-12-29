@@ -193,7 +193,9 @@ return function(ctx, misc)
                     end
                     local dest = CFrame.new(result.Position + Vector3.new(0, 3, 0))
                     if State.ClickTpMethod == "Smooth" then
-                        local t = math.clamp(tonumber(State.ClickTpTweenTime) or 0.6, 0.05, 10)
+                        local speed = math.clamp(tonumber(State.ClickTpTweenTime) or 60, 1, 5000)
+                        local dist = (hrp.Position - dest.Position).Magnitude
+                        local t = math.clamp(dist / speed, 0.05, 10)
                         pcall(function()
                             State.activeClickTpTween = TweenService:Create(hrp, TweenInfo.new(t, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { CFrame = dest })
                             State.activeClickTpTween:Play()
@@ -223,7 +225,9 @@ return function(ctx, misc)
             State.activeGotoTween = nil
         end
         if State.GotoMethod == "Tween" then
-            local t = math.clamp(tonumber(State.GotoTweenTime) or 1, 0.05, 10)
+            local speed = math.clamp(tonumber(State.GotoTweenTime) or 60, 1, 5000)
+            local dist = (hrp.Position - dest.Position).Magnitude
+            local t = math.clamp(dist / speed, 0.05, 10)
             pcall(function()
                 State.activeGotoTween = TweenService:Create(hrp, TweenInfo.new(t, Enum.EasingStyle.Linear), { CFrame = dest })
                 State.activeGotoTween:Play()
