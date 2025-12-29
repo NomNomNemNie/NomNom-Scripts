@@ -5,10 +5,27 @@ return function(ctx, misc)
     local Players = Services.Players
     local RunService = Services.RunService
     local UIS = Services.UIS
+    local GuiService = Services.GuiService
     local State = ctx.State
     local Player = ctx.Player
 
     local M = {}
+
+    local function getGuiInset()
+        if GuiService and GuiService.GetGuiInset then
+            local inset = GuiService:GetGuiInset()
+            if typeof(inset) == "Vector2" then
+                return inset
+            end
+        end
+        return Vector2.zero
+    end
+
+    local function getMouseViewportPosition()
+        local inset = getGuiInset()
+        local pos = UIS:GetMouseLocation()
+        return pos - inset
+    end
 
     local aimConn = nil
     local inputConnBegan = nil
@@ -142,7 +159,7 @@ return function(ctx, misc)
         local cam = workspace.CurrentCamera
         if not cam then return nil end
 
-        local mousePos = UIS:GetMouseLocation()
+        local mousePos = getMouseViewportPosition()
         local bestPart = nil
         local bestDist = nil
 
@@ -207,7 +224,7 @@ return function(ctx, misc)
 
         local viewportPos, onScreen = cam:WorldToViewportPoint(targetPos)
         if onScreen and typeof(mousemoverel) == "function" then
-            local mousePos = UIS:GetMouseLocation()
+            local mousePos = getMouseViewportPosition()
             local diff = Vector2.new(viewportPos.X, viewportPos.Y) - mousePos
             local sens = math.max(tonumber(config.MousemoverSensitivity) or 1, 0)
             mousemoverel(diff.X * sens, diff.Y * sens)
