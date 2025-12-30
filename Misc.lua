@@ -38,6 +38,8 @@ return function(ctx)
                 if typeof(cfg.LoopGotoKeyName) == "string" and Enum.KeyCode[cfg.LoopGotoKeyName] then State.LoopGotoKey = Enum.KeyCode[cfg.LoopGotoKeyName] end
                 if typeof(cfg.FreecamKeyName) == "string" and Enum.KeyCode[cfg.FreecamKeyName] then State.FreecamKey = Enum.KeyCode[cfg.FreecamKeyName] end
                 if typeof(cfg.OrbitKeyName) == "string" and Enum.KeyCode[cfg.OrbitKeyName] then State.OrbitKey = Enum.KeyCode[cfg.OrbitKeyName] end
+                if typeof(cfg.AimbotKeyName) == "string" and Enum.KeyCode[cfg.AimbotKeyName] then State.AimbotKey = Enum.KeyCode[cfg.AimbotKeyName] end
+                if typeof(cfg.AimbotTriggerKeyName) == "string" and Enum.KeyCode[cfg.AimbotTriggerKeyName] then State.AimbotTriggerKey = Enum.KeyCode[cfg.AimbotTriggerKeyName] end
 
                 if typeof(cfg.CurrentScale) == "number" then State.CurrentScale = cfg.CurrentScale end
                 if typeof(cfg.LastPosX) == "number" and typeof(cfg.LastPosY) == "number" then State.LastPos = UDim2.fromOffset(cfg.LastPosX, cfg.LastPosY) end
@@ -98,6 +100,8 @@ return function(ctx)
                 LoopGotoKeyName = State.LoopGotoKey and State.LoopGotoKey.Name or nil,
                 FreecamKeyName = State.FreecamKey and State.FreecamKey.Name or nil,
                 OrbitKeyName = State.OrbitKey and State.OrbitKey.Name or nil,
+                AimbotKeyName = State.AimbotKey and State.AimbotKey.Name or nil,
+                AimbotTriggerKeyName = State.AimbotTriggerKey and State.AimbotTriggerKey.Name or nil,
 
                 CurrentScale = State.CurrentScale,
                 LastPosX = (State.LastPos and State.LastPos.X and State.LastPos.X.Offset) or nil,

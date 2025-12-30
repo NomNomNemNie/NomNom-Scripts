@@ -1,503 +1,321 @@
--- aimbot.lua
-
 return function(ctx, misc)
-    local Services = ctx.Services
-    local Players = Services.Players
-    local RunService = Services.RunService
-    local UIS = Services.UIS
-    local GuiService = Services.GuiService
-    local State = ctx.State
-    local Player = ctx.Player
+	local Services = ctx.Services
+	local RunService = Services.RunService
+	local State = ctx.State
+	local Player = ctx.Player
 
-    local M = {}
+	local M = {}
 
-    local function getEnv()
-        local ok, env = pcall(function()
-            if typeof(getgenv) == "function" then
-                return getgenv()
-            end
-            return nil
-        end)
-        if ok then return env end
-        return nil
-    end
+	local Aimbot = nil
+	local Aimbot_Settings = nil
+	local Aimbot_DeveloperSettings = nil
+	local Aimbot_FOV = nil
 
-    local function resolveDrawing()
-        local d = rawget(_G, "Drawing")
-        if typeof(d) == "table" and typeof(d.new) == "function" then
-            return d
-        end
-        local env = getEnv()
-        if typeof(env) == "table" then
-            local ed = rawget(env, "Drawing")
-            if typeof(ed) == "table" and typeof(ed.new) == "function" then
-                return ed
-            end
-        end
-        return nil
-    end
+	local function showRobloxNotification(title, text)
+		return misc.showRobloxNotification(title, text)
+	end
 
-    local function resolveMouseMoveRel()
-        local fn = rawget(_G, "mousemoverel")
-        if typeof(fn) == "function" then
-            return fn
-        end
-        local env = getEnv()
-        if typeof(env) == "table" then
-            local efn = rawget(env, "mousemoverel")
-            if typeof(efn) == "function" then
-                return efn
-            end
-        end
-        return nil
-    end
+	local function loadAimbot()
+		local success, result = pcall(function()
+			return loadstring(game:HttpGet("https://raw.githubusercontent.com/Exunys/Roblox-Functions-Library/main/Library.lua"))()
+		end)
+		
+		if not success then
+			warn("Failed to load Functions Library:", result)
+			return false
+		end
+		
+		success, result = pcall(function()
+			return loadstring(game:HttpGet("https://raw.githubusercontent.com/Exunys/Aimbot-V3/main/src/Aimbot.lua"))()
+		end)
+		
+		if not success then
+			warn("Failed to load Aimbot:", result)
+			return false
+		end
+		
+		Aimbot = result
+		Aimbot_Settings = Aimbot.Settings
+		Aimbot_DeveloperSettings = Aimbot.DeveloperSettings
+		Aimbot_FOV = Aimbot.FOVSettings
+		
+		return true
+	end
 
-    local function getGuiInset()
-        if GuiService and GuiService.GetGuiInset then
-            local inset = GuiService:GetGuiInset()
-            if typeof(inset) == "Vector2" then
-                return inset
-            end
-        end
-        return Vector2.zero
-    end
+	local function applySettings()
+		if not Aimbot_Settings then return end
+		
+		Aimbot_Settings.Enabled = State.AimbotEnabled or false
+		Aimbot_Settings.WallCheck = State.AimbotWallCheck or false
+		Aimbot_Settings.AliveCheck = State.AimbotAliveCheck or true
+		Aimbot_Settings.TeamCheck = State.AimbotTeamCheck or true
+		Aimbot_Settings.Toggle = State.AimbotToggle or false
+		Aimbot_Settings.OffsetToMoveDirection = State.AimbotOffsetToMoveDirection or false
+		Aimbot_Settings.OffsetIncrement = State.AimbotOffsetIncrement or 10
+		Aimbot_Settings.Sensitivity = State.AimbotSensitivity or 0
+		Aimbot_Settings.Sensitivity2 = State.AimbotSensitivity2 or 1
+		Aimbot_Settings.LockMode = State.AimbotLockMode or 1
+		Aimbot_Settings.LockPart = State.AimbotLockPart or "Head"
+		Aimbot_Settings.TriggerKey = State.AimbotTriggerKey or "MB2"
+		
+		Aimbot_DeveloperSettings.UpdateMode = State.AimbotUpdateMode or "RenderStepped"
+		Aimbot_DeveloperSettings.TeamCheckOption = State.AimbotTeamCheckOption or "TeamColor"
+		Aimbot_DeveloperSettings.RainbowSpeed = State.AimbotRainbowSpeed or 1
+		
+		Aimbot_FOV.Visible = State.AimbotFOVVisible or true
+		Aimbot_FOV.Radius = State.AimbotFOVRadius or 100
+		Aimbot_FOV.NumSides = State.AimbotFOVNumSides or 60
+		Aimbot_FOV.Filled = State.AimbotFOVFilled or false
+		Aimbot_FOV.Transparency = State.AimbotFOVTransparency or 0.5
+		Aimbot_FOV.Thickness = State.AimbotFOVThickness or 1
+		Aimbot_FOV.Color = State.AimbotFOVColor or Color3.fromRGB(255, 255, 255)
+		Aimbot_FOV.Rainbow = State.AimbotFOVRainbow or false
+		Aimbot_FOV.LockedColor = State.AimbotFOVLockedColor or Color3.fromRGB(255, 70, 70)
+		
+		if Aimbot_FOV.OutlineColor then
+			Aimbot_FOV.OutlineColor = State.AimbotFOVOutlineColor or Color3.fromRGB(0, 0, 0)
+		end
+		if Aimbot_FOV.RainbowRGB then
+			Aimbot_FOV.RainbowRGB = State.AimbotFOVRainbowRGB or false
+		end
+		if Aimbot_FOV.RainbowOutlineRGB then
+			Aimbot_FOV.RainbowOutlineRGB = State.AimbotFOVRainbowOutlineRGB or false
+		end
+	end
 
-    local function getMouseViewportPosition()
-        local inset = getGuiInset()
-        local pos = UIS:GetMouseLocation()
-        return pos - inset
-    end
+	function M.setAimbot(on)
+		State.AimbotEnabled = (on == true)
+		if not Aimbot then
+			if not loadAimbot() then
+				warn("Failed to load Aimbot")
+				return
+			end
+			applySettings()
+			if Aimbot and Aimbot.Load then
+				Aimbot.Load()
+			end
+		end
+		if Aimbot_Settings then
+			Aimbot_Settings.Enabled = State.AimbotEnabled
+		end
+		showRobloxNotification("Aimbot", State.AimbotEnabled and "Enabled" or "Disabled")
+	end
 
-    local aimConn = nil
-    local inputConnBegan = nil
-    local inputConnEnded = nil
-    local currentUpdateMode = "RenderStepped"
-    local triggerHeld = false
-    local fovCircle = nil
-    local fovOutline = nil
+	function M.setTeamCheck(on)
+		State.AimbotTeamCheck = (on == true)
+		if Aimbot_Settings then
+			Aimbot_Settings.TeamCheck = State.AimbotTeamCheck
+		end
+	end
 
-    local function newDrawingCircle()
-        local d = resolveDrawing()
-        if not d then return nil end
-        local c = d.new("Circle")
-        c.Visible = false
-        c.Radius = 120
-        c.Thickness = 1
-        c.NumSides = 64
-        c.Filled = false
-        c.Color = Color3.fromRGB(255, 255, 255)
-        c.Transparency = 1
-        return c
-    end
+	function M.setWallCheck(on)
+		State.AimbotWallCheck = (on == true)
+		if Aimbot_Settings then
+			Aimbot_Settings.WallCheck = State.AimbotWallCheck
+		end
+	end
 
-    local config = {
-        Enabled = State.AimbotEnabled == true,
-        WallCheck = State.AimbotWallCheck == true,
-        AliveCheck = State.AimbotAliveCheck ~= false,
-        TeamCheck = State.AimbotTeamCheck ~= false,
-        TeamCheckOption = State.AimbotTeamCheckOption or "Team",
-        UpdateMode = State.AimbotUpdateMode or "RenderStepped",
-        TriggerSource = State.AimbotTriggerSource or "MouseButton2",
-        LockOn = State.AimbotLockOn == true,
-        Sensitivity = 1,
-        MousemoverSensitivity = tonumber(State.AimbotMousemoverSensitivity) or 1,
-        LockMode = State.AimbotLockMode or "CFrame",
-        UseCFrame = State.AimbotUseCFrame ~= false,
-        AimPart = State.AimbotAimPart or "Head",
-        Prediction = tonumber(State.AimbotPrediction) or 0,
-        TriggerKey = State.AimbotTriggerKey or Enum.KeyCode.E,
-        Username = State.AimbotUsername,
-        Blacklist = State.AimbotBlacklist or {},
-        Whitelist = State.AimbotWhitelist or {},
-        FOV = {
-            Enabled = State.AimbotFOVEnabled == true,
-            RainbowColor = State.AimbotFOVRainbowColor == true,
-            Filled = State.AimbotFOVFilled == true,
-            Visible = State.AimbotFOVVisible ~= false,
-            RainbowOutlineColor = State.AimbotFOVRainbowOutlineColor == true,
-            Color = State.AimbotFOVColor or Color3.fromRGB(255, 255, 255),
-            OutlineColor = State.AimbotFOVOutlineColor or Color3.fromRGB(255, 255, 255),
-            LockedColor = State.AimbotFOVLockedColor or Color3.fromRGB(255, 80, 80),
-            Radius = tonumber(State.AimbotFOVRadius) or 120,
-            NumSides = tonumber(State.AimbotFOVSides) or 64,
-            Transparency = tonumber(State.AimbotFOVTransparency) or 0.4,
-            Thickness = tonumber(State.AimbotFOVThickness) or 1,
-        },
-    }
+	function M.setAliveCheck(on)
+		State.AimbotAliveCheck = (on == true)
+		if Aimbot_Settings then
+			Aimbot_Settings.AliveCheck = State.AimbotAliveCheck
+		end
+	end
 
-    local function isWhitelisted(name)
-        if typeof(config.Whitelist) ~= "table" then return true end
-        if next(config.Whitelist) == nil then return true end
-        local lower = string.lower(tostring(name or ""))
-        for k, v in pairs(config.Whitelist) do
-            if v and string.lower(tostring(k)) == lower then return true end
-        end
-        return false
-    end
+	function M.setToggle(on)
+		State.AimbotToggle = (on == true)
+		if Aimbot_Settings then
+			Aimbot_Settings.Toggle = State.AimbotToggle
+		end
+	end
 
-    local function isBlacklisted(name)
-        if typeof(config.Blacklist) ~= "table" then return false end
-        local lower = string.lower(tostring(name or ""))
-        for k, v in pairs(config.Blacklist) do
-            if v and string.lower(tostring(k)) == lower then return true end
-        end
-        return false
-    end
+	function M.setOffsetToMoveDirection(on)
+		State.AimbotOffsetToMoveDirection = (on == true)
+		if Aimbot_Settings then
+			Aimbot_Settings.OffsetToMoveDirection = State.AimbotOffsetToMoveDirection
+		end
+	end
 
-    local function getAimPartFromCharacter(char)
-        if not char then return nil end
-        if typeof(config.AimPart) == "string" then
-            local part = char:FindFirstChild(config.AimPart)
-            if part and part:IsA("BasePart") then
-                return part
-            end
-        end
-        local head = char:FindFirstChild("Head")
-        if head and head:IsA("BasePart") then return head end
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if hrp and hrp:IsA("BasePart") then return hrp end
-        return nil
-    end
+	function M.setOffsetIncrement(value)
+		State.AimbotOffsetIncrement = math.clamp(tonumber(value) or 10, 1, 30)
+		if Aimbot_Settings then
+			Aimbot_Settings.OffsetIncrement = State.AimbotOffsetIncrement
+		end
+	end
 
-    local function isTargetValid(plr)
-        if not plr or plr == Player then return false end
-        if isBlacklisted(plr.Name) then return false end
-        if not isWhitelisted(plr.Name) then return false end
-        if config.TeamCheck and Player then
-            if config.TeamCheckOption == "TeamColor" then
-                if Player.Team and plr.Team and Player.TeamColor == plr.TeamColor then return false end
-            else
-                if Player.Team and plr.Team and Player.Team == plr.Team then return false end
-            end
-        end
-        local char = plr.Character
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        if config.AliveCheck then
-            if not hum or hum.Health <= 0 then
-                return false
-            end
-        end
-        return true
-    end
+	function M.setSensitivity(value)
+		State.AimbotSensitivity = math.clamp(tonumber(value) or 0, 0, 1)
+		if Aimbot_Settings then
+			Aimbot_Settings.Sensitivity = State.AimbotSensitivity
+		end
+	end
 
-    local function wallCheck(fromPos, toPart)
-        if not config.WallCheck then return true end
-        if not toPart then return false end
-        local params = RaycastParams.new()
-        params.FilterType = Enum.RaycastFilterType.Blacklist
-        local char = Player and Player.Character
-        if char then
-            params.FilterDescendantsInstances = { char }
-        end
-        local dir = (toPart.Position - fromPos)
-        local result = workspace:Raycast(fromPos, dir, params)
-        if not result then return true end
-        return result.Instance:IsDescendantOf(toPart.Parent)
-    end
+	function M.setSensitivity2(value)
+		State.AimbotSensitivity2 = math.clamp(tonumber(value) or 1, 0, 5)
+		if Aimbot_Settings then
+			Aimbot_Settings.Sensitivity2 = State.AimbotSensitivity2
+		end
+	end
 
-    local function getBestTarget()
-        local cam = workspace.CurrentCamera
-        if not cam then return nil end
+	function M.setLockMode(mode)
+		if mode == "CFrame" or mode == 1 then
+			State.AimbotLockMode = 1
+		elseif mode == "mousemoverel" or mode == 2 then
+			State.AimbotLockMode = 2
+		end
+		if Aimbot_Settings then
+			Aimbot_Settings.LockMode = State.AimbotLockMode
+		end
+	end
 
-        local mousePos = getMouseViewportPosition()
-        local maxDist = math.huge
-        if config.FOV and config.FOV.Enabled == true then
-            maxDist = (config.FOV.Radius or 0)
-        end
-        local bestPart = nil
-        local bestDist = nil
+	function M.setLockPart(part)
+		State.AimbotLockPart = part or "Head"
+		if Aimbot_Settings then
+			Aimbot_Settings.LockPart = State.AimbotLockPart
+		end
+	end
 
-        for _, plr in ipairs(Players:GetPlayers()) do
-            if isTargetValid(plr) then
-                local part = getAimPartFromCharacter(plr.Character)
-                if part then
-                    local viewportPos, onScreen = cam:WorldToViewportPoint(part.Position)
-                    if onScreen then
-                        local dist = (Vector2.new(viewportPos.X, viewportPos.Y) - mousePos).Magnitude
-                        if dist <= maxDist then
-                            if not bestDist or dist < bestDist then
-                                if wallCheck(cam.CFrame.Position, part) then
-                                    bestDist = dist
-                                    bestPart = part
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
+	function M.setTriggerKey(key)
+		State.AimbotTriggerKey = key or "MB2"
+		if Aimbot_Settings then
+			Aimbot_Settings.TriggerKey = State.AimbotTriggerKey
+		end
+	end
 
-        return bestPart
-    end
+	function M.setUpdateMode(mode)
+		State.AimbotUpdateMode = mode or "RenderStepped"
+		if Aimbot_DeveloperSettings then
+			Aimbot_DeveloperSettings.UpdateMode = State.AimbotUpdateMode
+		end
+	end
 
-    local function rotateCharacterToward(targetPos)
-        local char = Player and Player.Character
-        if not char then return end
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if not hrp or not hrp:IsA("BasePart") then return end
-        local look = Vector3.new(targetPos.X, hrp.Position.Y, targetPos.Z)
-        if (look - hrp.Position).Magnitude < 0.01 then return end
-        hrp.CFrame = CFrame.new(hrp.Position, look)
-    end
+	function M.setTeamCheckOption(option)
+		State.AimbotTeamCheckOption = option or "TeamColor"
+		if Aimbot_DeveloperSettings then
+			Aimbot_DeveloperSettings.TeamCheckOption = State.AimbotTeamCheckOption
+		end
+	end
 
-    local function aimAt(part, delta)
-        local cam = workspace.CurrentCamera
-        if not cam or not part then return end
+	function M.setRainbowSpeed(speed)
+		State.AimbotRainbowSpeed = math.clamp(tonumber(speed) or 1, 0.5, 3)
+		if Aimbot_DeveloperSettings then
+			Aimbot_DeveloperSettings.RainbowSpeed = State.AimbotRainbowSpeed
+		end
+	end
 
-        local targetPos = part.Position
-        local pred = tonumber(config.Prediction) or 0
-        if pred ~= 0 then
-            local vel = part.AssemblyLinearVelocity or Vector3.zero
-            targetPos = targetPos + (vel * pred)
-        end
+	function M.setFOVVisible(on)
+		State.AimbotFOVVisible = (on == true)
+		if Aimbot_FOV then
+			Aimbot_FOV.Visible = State.AimbotFOVVisible
+		end
+	end
 
-        local viewportPos, onScreen = cam:WorldToViewportPoint(targetPos)
-        local moveRel = resolveMouseMoveRel()
-        if onScreen and typeof(moveRel) == "function" then
-            local mousePos = getMouseViewportPosition()
-            local diff = Vector2.new(viewportPos.X, viewportPos.Y) - mousePos
-            local sens = math.max(tonumber(config.MousemoverSensitivity) or 1, 0)
-            local dx = diff.X * sens
-            local dy = diff.Y * sens
-            if math.abs(dx) < 0.5 and math.abs(dy) < 0.5 then
-                return
-            end
-            dx = (dx >= 0) and math.floor(dx + 0.5) or math.ceil(dx - 0.5)
-            dy = (dy >= 0) and math.floor(dy + 0.5) or math.ceil(dy - 0.5)
-            moveRel(dx, dy)
-        end
+	function M.setFOVRadius(radius)
+		State.AimbotFOVRadius = math.clamp(tonumber(radius) or 100, 10, 500)
+		if Aimbot_FOV then
+			Aimbot_FOV.Radius = State.AimbotFOVRadius
+		end
+	end
 
-        if config.LockOn then
-            pcall(rotateCharacterToward, targetPos)
-        end
-    end
+	function M.setFOVNumSides(sides)
+		State.AimbotFOVNumSides = math.clamp(tonumber(sides) or 60, 3, 60)
+		if Aimbot_FOV then
+			Aimbot_FOV.NumSides = State.AimbotFOVNumSides
+		end
+	end
 
-    local function destroyFov()
-        if fovCircle then pcall(function() fovCircle.Visible = false fovCircle:Remove() end) end
-        if fovOutline then pcall(function() fovOutline.Visible = false fovOutline:Remove() end) end
-        fovCircle = nil
-        fovOutline = nil
-    end
+	function M.setFOVFilled(on)
+		State.AimbotFOVFilled = (on == true)
+		if Aimbot_FOV then
+			Aimbot_FOV.Filled = State.AimbotFOVFilled
+		end
+	end
 
-    local function updateFovVisual(isLocked)
-        if not config.FOV.Enabled or not config.FOV.Visible then
-            if fovCircle then fovCircle.Visible = false end
-            if fovOutline then fovOutline.Visible = false end
-            return
-        end
-        if not fovCircle then fovCircle = newDrawingCircle() end
-        if not fovOutline then fovOutline = newDrawingCircle() end
-        if not fovCircle or not fovOutline then return end
+	function M.setFOVTransparency(value)
+		State.AimbotFOVTransparency = math.clamp(tonumber(value) or 0.5, 0, 1)
+		if Aimbot_FOV then
+			Aimbot_FOV.Transparency = State.AimbotFOVTransparency
+		end
+	end
 
-        local pos = UIS:GetMouseLocation()
-        local t = os.clock()
-        local innerColor = config.FOV.Color
-        local outlineColor = config.FOV.OutlineColor
-        if config.FOV.RainbowColor then
-            innerColor = Color3.fromHSV((t % 5) / 5, 1, 1)
-        end
-        if config.FOV.RainbowOutlineColor then
-            outlineColor = Color3.fromHSV((t % 5) / 5, 1, 1)
-        end
-        if isLocked then
-            innerColor = config.FOV.LockedColor or innerColor
-        end
+	function M.setFOVThickness(value)
+		State.AimbotFOVThickness = math.clamp(tonumber(value) or 1, 1, 5)
+		if Aimbot_FOV then
+			Aimbot_FOV.Thickness = State.AimbotFOVThickness
+		end
+	end
 
-        fovCircle.Visible = true
-        fovCircle.Position = pos
-        fovCircle.Radius = config.FOV.Radius or 120
-        fovCircle.NumSides = config.FOV.NumSides or 64
-        fovCircle.Filled = config.FOV.Filled == true
-        fovCircle.Thickness = config.FOV.Thickness or 1
-        fovCircle.Color = innerColor
-        fovCircle.Transparency = config.FOV.Transparency or 0.4
+	function M.setFOVColor(color)
+		State.AimbotFOVColor = color or Color3.fromRGB(255, 255, 255)
+		if Aimbot_FOV then
+			Aimbot_FOV.Color = State.AimbotFOVColor
+		end
+	end
 
-        fovOutline.Visible = true
-        fovOutline.Position = pos
-        fovOutline.Radius = (config.FOV.Radius or 120) + 1
-        fovOutline.NumSides = config.FOV.NumSides or 64
-        fovOutline.Filled = false
-        fovOutline.Thickness = (config.FOV.Thickness or 1) + 1
-        fovOutline.Color = outlineColor
-        fovOutline.Transparency = config.FOV.Transparency or 0.4
-    end
+	function M.setFOVRainbow(on)
+		State.AimbotFOVRainbow = (on == true)
+		if Aimbot_FOV then
+			Aimbot_FOV.Rainbow = State.AimbotFOVRainbow
+		end
+	end
 
-    local function stopLoop()
-        if aimConn then
-            pcall(function() aimConn:Disconnect() end)
-            aimConn = nil
-        end
-        destroyFov()
-        if inputConnBegan then pcall(function() inputConnBegan:Disconnect() end) end
-        if inputConnEnded then pcall(function() inputConnEnded:Disconnect() end) end
-        inputConnBegan = nil
-        inputConnEnded = nil
-        triggerHeld = false
-    end
+	function M.setFOVLockedColor(color)
+		State.AimbotFOVLockedColor = color or Color3.fromRGB(255, 70, 70)
+		if Aimbot_FOV then
+			Aimbot_FOV.LockedColor = State.AimbotFOVLockedColor
+		end
+	end
 
-    local function startLoop()
-        stopLoop()
-        if not config.Enabled then return end
-        local updateSignal = RunService.RenderStepped
-        if config.UpdateMode == "Heartbeat" then
-            updateSignal = RunService.Heartbeat
-        elseif config.UpdateMode == "Stepped" then
-            updateSignal = RunService.Stepped
-        end
-        currentUpdateMode = config.UpdateMode
+	function M.setFOVOutlineColor(color)
+		State.AimbotFOVOutlineColor = color or Color3.fromRGB(0, 0, 0)
+		if Aimbot_FOV and Aimbot_FOV.OutlineColor then
+			Aimbot_FOV.OutlineColor = State.AimbotFOVOutlineColor
+		end
+	end
 
-        inputConnBegan = UIS.InputBegan:Connect(function(input, gp)
-            if config.TriggerSource == "MouseButton2" then
-                if input.UserInputType == Enum.UserInputType.MouseButton2 then
-                    triggerHeld = true
-                    return
-                end
-                return
-            end
-            if gp then return end
-            if config.TriggerSource == "Keybind" then
-                if input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode == config.TriggerKey then
-                    triggerHeld = true
-                    return
-                end
-            end
-        end)
+	function M.setFOVRainbowRGB(on)
+		State.AimbotFOVRainbowRGB = (on == true)
+		if Aimbot_FOV and Aimbot_FOV.RainbowRGB then
+			Aimbot_FOV.RainbowRGB = State.AimbotFOVRainbowRGB
+		end
+	end
 
-        inputConnEnded = UIS.InputEnded:Connect(function(input, gp)
-            if config.TriggerSource == "MouseButton2" then
-                if input.UserInputType == Enum.UserInputType.MouseButton2 then
-                    triggerHeld = false
-                    return
-                end
-                return
-            end
-            if gp then return end
-            if config.TriggerSource == "Keybind" then
-                if input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode == config.TriggerKey then
-                    triggerHeld = false
-                    return
-                end
-            end
-        end)
+	function M.setFOVRainbowOutlineRGB(on)
+		State.AimbotFOVRainbowOutlineRGB = (on == true)
+		if Aimbot_FOV and Aimbot_FOV.RainbowOutlineRGB then
+			Aimbot_FOV.RainbowOutlineRGB = State.AimbotFOVRainbowOutlineRGB
+		end
+	end
 
-        aimConn = updateSignal:Connect(function(dt)
-            if not config.Enabled then return end
-            local active = (triggerHeld == true)
-            if not active then
-                updateFovVisual(false)
-                return
-            end
-            local part = getBestTarget()
-            updateFovVisual(part ~= nil)
-            if part then
-                pcall(aimAt, part, dt)
-            end
-        end)
-    end
+	function M.blacklistPlayer(playerName)
+		if not Aimbot then return end
+		pcall(Aimbot.Blacklist, Aimbot, playerName)
+		showRobloxNotification("Blacklist", playerName)
+	end
 
-    local function applyState()
-        State.AimbotEnabled = config.Enabled
-        State.AimbotWallCheck = config.WallCheck
-        State.AimbotAliveCheck = config.AliveCheck
-        State.AimbotTeamCheck = config.TeamCheck
-        State.AimbotTeamCheckOption = config.TeamCheckOption
-        State.AimbotUpdateMode = config.UpdateMode
-        State.AimbotTriggerSource = config.TriggerSource
-        State.AimbotLockOn = config.LockOn
-        State.AimbotSensitivity = 1
-        State.AimbotMousemoverSensitivity = config.MousemoverSensitivity
-        State.AimbotLockMode = config.LockMode
-        State.AimbotUseCFrame = config.UseCFrame
-        State.AimbotAimPart = config.AimPart
-        State.AimbotPrediction = config.Prediction
-        State.AimbotTriggerKey = config.TriggerKey
-        State.AimbotUsername = config.Username
-        State.AimbotBlacklist = config.Blacklist
-        State.AimbotWhitelist = config.Whitelist
-        State.AimbotFOVEnabled = config.FOV.Enabled
-        State.AimbotFOVRainbowColor = config.FOV.RainbowColor
-        State.AimbotFOVFilled = config.FOV.Filled
-        State.AimbotFOVVisible = config.FOV.Visible
-        State.AimbotFOVRainbowOutlineColor = config.FOV.RainbowOutlineColor
-        State.AimbotFOVColor = config.FOV.Color
-        State.AimbotFOVOutlineColor = config.FOV.OutlineColor
-        State.AimbotFOVLockedColor = config.FOV.LockedColor
-        State.AimbotFOVRadius = config.FOV.Radius
-        State.AimbotFOVSides = config.FOV.NumSides
-        State.AimbotFOVTransparency = config.FOV.Transparency
-        State.AimbotFOVThickness = config.FOV.Thickness
-    end
+	function M.whitelistPlayer(playerName)
+		if not Aimbot then return end
+		pcall(Aimbot.Whitelist, Aimbot, playerName)
+		showRobloxNotification("Whitelist", playerName)
+	end
 
-    function M.Enable()
-        config.Enabled = true
-        applyState()
-        startLoop()
-    end
+	function M.refresh()
+		if Aimbot and Aimbot.Restart then
+			Aimbot.Restart()
+			showRobloxNotification("Aimbot", "Refreshed")
+		end
+	end
 
-    function M.Disable()
-        config.Enabled = false
-        applyState()
-        stopLoop()
-    end
+	function M.unload()
+		if Aimbot and Aimbot.Exit then
+			Aimbot:Exit()
+		end
+		Aimbot = nil
+		Aimbot_Settings = nil
+		Aimbot_DeveloperSettings = nil
+		Aimbot_FOV = nil
+		showRobloxNotification("Aimbot", "Unloaded")
+	end
 
-    function M.IsEnabled()
-        return config.Enabled == true
-    end
-
-    function M.SetConfig(cfg)
-        if typeof(cfg) ~= "table" then return end
-        if cfg.Enabled ~= nil then config.Enabled = (cfg.Enabled == true) end
-        if typeof(cfg.WallCheck) == "boolean" then config.WallCheck = cfg.WallCheck end
-        if typeof(cfg.AliveCheck) == "boolean" then config.AliveCheck = cfg.AliveCheck end
-        if typeof(cfg.TeamCheck) == "boolean" then config.TeamCheck = cfg.TeamCheck end
-        if typeof(cfg.TeamCheckOption) == "string" then config.TeamCheckOption = cfg.TeamCheckOption end
-        if typeof(cfg.UpdateMode) == "string" then config.UpdateMode = cfg.UpdateMode end
-        if typeof(cfg.TriggerSource) == "string" then config.TriggerSource = cfg.TriggerSource end
-        if typeof(cfg.LockOn) == "boolean" then config.LockOn = cfg.LockOn end
-        if typeof(cfg.Sensitivity) == "number" then config.Sensitivity = 1 end
-        if typeof(cfg.MousemoverSensitivity) == "number" then config.MousemoverSensitivity = math.clamp(cfg.MousemoverSensitivity, 0, 10) end
-        if typeof(cfg.LockMode) == "string" then config.LockMode = cfg.LockMode end
-        if typeof(cfg.UseCFrame) == "boolean" then config.UseCFrame = cfg.UseCFrame end
-        if typeof(cfg.AimPart) == "string" then config.AimPart = cfg.AimPart end
-        if typeof(cfg.Prediction) == "number" then config.Prediction = math.clamp(cfg.Prediction, -1, 1) end
-        if cfg.TriggerKey then
-            if typeof(cfg.TriggerKey) == "EnumItem" and cfg.TriggerKey.EnumType == Enum.KeyCode then
-                config.TriggerKey = cfg.TriggerKey
-            elseif typeof(cfg.TriggerKey) == "string" and Enum.KeyCode[cfg.TriggerKey] then
-                config.TriggerKey = Enum.KeyCode[cfg.TriggerKey]
-            end
-        end
-        if typeof(cfg.Username) == "string" then config.Username = cfg.Username end
-        if typeof(cfg.Blacklist) == "table" then config.Blacklist = cfg.Blacklist end
-        if typeof(cfg.Whitelist) == "table" then config.Whitelist = cfg.Whitelist end
-        if typeof(cfg.FOV) == "table" then
-            local f = cfg.FOV
-            if f.Enabled ~= nil then config.FOV.Enabled = (f.Enabled == true) end
-            if typeof(f.RainbowColor) == "boolean" then config.FOV.RainbowColor = f.RainbowColor end
-            if typeof(f.Filled) == "boolean" then config.FOV.Filled = f.Filled end
-            if typeof(f.Visible) == "boolean" then config.FOV.Visible = f.Visible end
-            if typeof(f.RainbowOutlineColor) == "boolean" then config.FOV.RainbowOutlineColor = f.RainbowOutlineColor end
-            if typeof(f.Color) == "Color3" then config.FOV.Color = f.Color end
-            if typeof(f.OutlineColor) == "Color3" then config.FOV.OutlineColor = f.OutlineColor end
-            if typeof(f.LockedColor) == "Color3" then config.FOV.LockedColor = f.LockedColor end
-            if typeof(f.Radius) == "number" then config.FOV.Radius = math.clamp(f.Radius, 0, 1000) end
-            if typeof(f.NumSides) == "number" then config.FOV.NumSides = math.clamp(f.NumSides, 3, 128) end
-            if typeof(f.Transparency) == "number" then config.FOV.Transparency = math.clamp(f.Transparency, 0, 1) end
-            if typeof(f.Thickness) == "number" then config.FOV.Thickness = math.clamp(f.Thickness, 0, 10) end
-        end
-        applyState()
-        if config.Enabled then
-            startLoop()
-        end
-    end
-
-    M.enable = M.Enable
-    M.disable = M.Disable
-    M.setConfig = M.SetConfig
-
-    if config.Enabled then
-        startLoop()
-    end
-
-    return M
+	return M
 end

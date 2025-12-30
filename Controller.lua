@@ -6,6 +6,7 @@ return function(ctx, deps)
     local movement = deps.movement
     local visual = deps.visual
     local combat = deps.combat
+    local aimbot = deps.aimbot
 
     local C = {}
 
@@ -54,6 +55,56 @@ return function(ctx, deps)
     function C.setTracers(v) return visual.setTracers and visual.setTracers(v) end
     function C.setOverlayEnabled(v) return visual.setOverlayEnabled and visual.setOverlayEnabled(v) end
     function C.buildPlayerNameList() return visual.buildPlayerNameList and visual.buildPlayerNameList() or {} end
+
+    -- Aimbot
+    function C.setAimbotEnabled(v) return aimbot and aimbot.setAimbot and aimbot.setAimbot(v) end
+    function C.blacklistAimbotPlayer(name) return aimbot and aimbot.blacklistPlayer and aimbot.blacklistPlayer(name) end
+    function C.whitelistAimbotPlayer(name) return aimbot and aimbot.whitelistPlayer and aimbot.whitelistPlayer(name) end
+    function C.refreshAimbot() return aimbot and aimbot.refresh and aimbot.refresh() end
+    function C.unloadAimbot() return aimbot and aimbot.unload and aimbot.unload() end
+
+    function C.setAimbotConfig(cfg)
+        if typeof(cfg) ~= "table" then return end
+
+        -- Aliases from legacy/UI schema used by .vscode/Code.lua
+        if cfg.ToggleMode ~= nil and cfg.Toggle == nil then cfg.Toggle = (cfg.ToggleMode == true) end
+        if cfg.AimPart ~= nil and cfg.LockPart == nil then cfg.LockPart = cfg.AimPart end
+        if cfg.MousemoverSensitivity ~= nil and cfg.Sensitivity2 == nil then cfg.Sensitivity2 = cfg.MousemoverSensitivity end
+        if cfg.TeamCheckOption ~= nil and cfg.TeamCheckOption ~= "TeamColor" and cfg.TeamCheckOption ~= "Team" then
+            cfg.TeamCheckOption = tostring(cfg.TeamCheckOption)
+        end
+
+        if cfg.TeamCheck ~= nil and aimbot and aimbot.setTeamCheck then aimbot.setTeamCheck(cfg.TeamCheck == true) end
+        if cfg.WallCheck ~= nil and aimbot and aimbot.setWallCheck then aimbot.setWallCheck(cfg.WallCheck == true) end
+        if cfg.AliveCheck ~= nil and aimbot and aimbot.setAliveCheck then aimbot.setAliveCheck(cfg.AliveCheck == true) end
+        if cfg.Toggle ~= nil and aimbot and aimbot.setToggle then aimbot.setToggle(cfg.Toggle == true) end
+        if cfg.OffsetToMoveDirection ~= nil and aimbot and aimbot.setOffsetToMoveDirection then aimbot.setOffsetToMoveDirection(cfg.OffsetToMoveDirection == true) end
+
+        if cfg.OffsetIncrement ~= nil and aimbot and aimbot.setOffsetIncrement then aimbot.setOffsetIncrement(cfg.OffsetIncrement) end
+        if cfg.Sensitivity ~= nil and aimbot and aimbot.setSensitivity then aimbot.setSensitivity(cfg.Sensitivity) end
+        if cfg.Sensitivity2 ~= nil and aimbot and aimbot.setSensitivity2 then aimbot.setSensitivity2(cfg.Sensitivity2) end
+
+        if cfg.LockMode ~= nil and aimbot and aimbot.setLockMode then aimbot.setLockMode(cfg.LockMode) end
+        if cfg.LockPart ~= nil and aimbot and aimbot.setLockPart then aimbot.setLockPart(cfg.LockPart) end
+        if cfg.TriggerKey ~= nil and aimbot and aimbot.setTriggerKey then aimbot.setTriggerKey(cfg.TriggerKey) end
+
+        if cfg.UpdateMode ~= nil and aimbot and aimbot.setUpdateMode then aimbot.setUpdateMode(cfg.UpdateMode) end
+        if cfg.TeamCheckOption ~= nil and aimbot and aimbot.setTeamCheckOption then aimbot.setTeamCheckOption(cfg.TeamCheckOption) end
+        if cfg.RainbowSpeed ~= nil and aimbot and aimbot.setRainbowSpeed then aimbot.setRainbowSpeed(cfg.RainbowSpeed) end
+
+        if cfg.FOVVisible ~= nil and aimbot and aimbot.setFOVVisible then aimbot.setFOVVisible(cfg.FOVVisible == true) end
+        if cfg.FOVRadius ~= nil and aimbot and aimbot.setFOVRadius then aimbot.setFOVRadius(cfg.FOVRadius) end
+        if cfg.FOVNumSides ~= nil and aimbot and aimbot.setFOVNumSides then aimbot.setFOVNumSides(cfg.FOVNumSides) end
+        if cfg.FOVFilled ~= nil and aimbot and aimbot.setFOVFilled then aimbot.setFOVFilled(cfg.FOVFilled == true) end
+        if cfg.FOVTransparency ~= nil and aimbot and aimbot.setFOVTransparency then aimbot.setFOVTransparency(cfg.FOVTransparency) end
+        if cfg.FOVThickness ~= nil and aimbot and aimbot.setFOVThickness then aimbot.setFOVThickness(cfg.FOVThickness) end
+        if cfg.FOVColor ~= nil and aimbot and aimbot.setFOVColor then aimbot.setFOVColor(cfg.FOVColor) end
+        if cfg.FOVRainbow ~= nil and aimbot and aimbot.setFOVRainbow then aimbot.setFOVRainbow(cfg.FOVRainbow == true) end
+        if cfg.FOVLockedColor ~= nil and aimbot and aimbot.setFOVLockedColor then aimbot.setFOVLockedColor(cfg.FOVLockedColor) end
+        if cfg.FOVOutlineColor ~= nil and aimbot and aimbot.setFOVOutlineColor then aimbot.setFOVOutlineColor(cfg.FOVOutlineColor) end
+        if cfg.FOVRainbowRGB ~= nil and aimbot and aimbot.setFOVRainbowRGB then aimbot.setFOVRainbowRGB(cfg.FOVRainbowRGB == true) end
+        if cfg.FOVRainbowOutlineRGB ~= nil and aimbot and aimbot.setFOVRainbowOutlineRGB then aimbot.setFOVRainbowOutlineRGB(cfg.FOVRainbowOutlineRGB == true) end
+    end
 
     -- Misc toggles
     function C.setAntiAfk(v) return misc.setAntiAfk and misc.setAntiAfk(v) end
