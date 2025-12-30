@@ -56,6 +56,7 @@ return function(ctx, misc)
         TeamCheckOption = State.AimbotTeamCheckOption or "Team",
         UpdateMode = State.AimbotUpdateMode or "RenderStepped",
         TriggerEnabled = State.AimbotTriggerEnabled ~= false,
+        ToggleMode = State.AimbotToggleMode == true,
         LockOn = State.AimbotLockOn == true,
         OffsetToMoveDirection = State.AimbotOffsetToMoveDirection == true,
         OffsetIncrement = tonumber(State.AimbotOffsetIncrement) or 0,
@@ -65,6 +66,7 @@ return function(ctx, misc)
         UseCFrame = State.AimbotUseCFrame ~= false,
         AimPart = State.AimbotAimPart or "Head",
         Prediction = tonumber(State.AimbotPrediction) or 0,
+        RainbowSpeed = tonumber(State.AimbotRainbowSpeed) or 1,
         TriggerKey = State.AimbotTriggerKey or Enum.KeyCode.E,
         Username = State.AimbotUsername,
         Blacklist = State.AimbotBlacklist or {},
@@ -227,7 +229,8 @@ return function(ctx, misc)
             local mousePos = getMouseViewportPosition()
             local diff = Vector2.new(viewportPos.X, viewportPos.Y) - mousePos
             local sens = math.max(tonumber(config.MousemoverSensitivity) or 1, 0)
-            mousemoverel(diff.X * sens, diff.Y * sens)
+            local animSens = math.clamp(tonumber(config.Sensitivity) or 1, 0, 1)
+            mousemoverel(diff.X * sens * animSens, diff.Y * sens * animSens)
         end
 
         if config.LockOn then
@@ -253,7 +256,7 @@ return function(ctx, misc)
         if not fovCircle or not fovOutline then return end
 
         local pos = UIS:GetMouseLocation()
-        local t = os.clock()
+        local t = (os.clock() * (tonumber(config.RainbowSpeed) or 1))
         local innerColor = config.FOV.Color
         local outlineColor = config.FOV.OutlineColor
         if config.FOV.RainbowColor then
@@ -316,7 +319,11 @@ return function(ctx, misc)
                 return
             end
             if input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode == config.TriggerKey then
-                triggerHeld = true
+                if config.ToggleMode then
+                    triggerHeld = not triggerHeld
+                else
+                    triggerHeld = true
+                end
                 return
             end
         end)
@@ -328,7 +335,9 @@ return function(ctx, misc)
                 return
             end
             if input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode == config.TriggerKey then
-                triggerHeld = false
+                if not config.ToggleMode then
+                    triggerHeld = false
+                end
                 return
             end
         end)
@@ -359,6 +368,7 @@ return function(ctx, misc)
         State.AimbotTeamCheckOption = config.TeamCheckOption
         State.AimbotUpdateMode = config.UpdateMode
         State.AimbotTriggerEnabled = config.TriggerEnabled
+        State.AimbotToggleMode = config.ToggleMode
         State.AimbotLockOn = config.LockOn
         State.AimbotOffsetToMoveDirection = config.OffsetToMoveDirection
         State.AimbotOffsetIncrement = config.OffsetIncrement
@@ -368,6 +378,7 @@ return function(ctx, misc)
         State.AimbotUseCFrame = config.UseCFrame
         State.AimbotAimPart = config.AimPart
         State.AimbotPrediction = config.Prediction
+        State.AimbotRainbowSpeed = config.RainbowSpeed
         State.AimbotTriggerKey = config.TriggerKey
         State.AimbotUsername = config.Username
         State.AimbotBlacklist = config.Blacklist
@@ -411,6 +422,7 @@ return function(ctx, misc)
         if typeof(cfg.TeamCheckOption) == "string" then config.TeamCheckOption = cfg.TeamCheckOption end
         if typeof(cfg.UpdateMode) == "string" then config.UpdateMode = cfg.UpdateMode end
         if typeof(cfg.TriggerEnabled) == "boolean" then config.TriggerEnabled = cfg.TriggerEnabled end
+        if typeof(cfg.ToggleMode) == "boolean" then config.ToggleMode = cfg.ToggleMode end
         if typeof(cfg.LockOn) == "boolean" then config.LockOn = cfg.LockOn end
         if typeof(cfg.OffsetToMoveDirection) == "boolean" then config.OffsetToMoveDirection = cfg.OffsetToMoveDirection end
         if typeof(cfg.OffsetIncrement) == "number" then config.OffsetIncrement = math.clamp(cfg.OffsetIncrement, -1000, 1000) end
@@ -420,6 +432,7 @@ return function(ctx, misc)
         if typeof(cfg.UseCFrame) == "boolean" then config.UseCFrame = cfg.UseCFrame end
         if typeof(cfg.AimPart) == "string" then config.AimPart = cfg.AimPart end
         if typeof(cfg.Prediction) == "number" then config.Prediction = math.clamp(cfg.Prediction, -1, 1) end
+        if typeof(cfg.RainbowSpeed) == "number" then config.RainbowSpeed = math.max(cfg.RainbowSpeed, 0) end
         if cfg.TriggerKey then
             if typeof(cfg.TriggerKey) == "EnumItem" and cfg.TriggerKey.EnumType == Enum.KeyCode then
                 config.TriggerKey = cfg.TriggerKey
