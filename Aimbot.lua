@@ -55,14 +55,14 @@ return function(ctx, misc)
         TeamCheck = State.AimbotTeamCheck ~= false,
         TeamCheckOption = State.AimbotTeamCheckOption or "Team",
         UpdateMode = State.AimbotUpdateMode or "RenderStepped",
-        TriggerEnabled = State.AimbotTriggerEnabled ~= false,
+        TriggerSource = State.AimbotTriggerSource or "MouseButton2",
         LockOn = State.AimbotLockOn == true,
         Sensitivity = 1,
-        MousemoverSensitivity = math.clamp(tonumber(State.AimbotMousemoverSensitivity) or 1, 0, 1),
+        MousemoverSensitivity = tonumber(State.AimbotMousemoverSensitivity) or 1,
         LockMode = State.AimbotLockMode or "CFrame",
         UseCFrame = State.AimbotUseCFrame ~= false,
         AimPart = State.AimbotAimPart or "Head",
-        Prediction = math.clamp(tonumber(State.AimbotPrediction) or 0, 0, 1),
+        Prediction = tonumber(State.AimbotPrediction) or 0,
         TriggerKey = State.AimbotTriggerKey or Enum.KeyCode.E,
         Username = State.AimbotUsername,
         Blacklist = State.AimbotBlacklist or {},
@@ -158,6 +158,10 @@ return function(ctx, misc)
         if not cam then return nil end
 
         local mousePos = getMouseViewportPosition()
+        local maxDist = math.huge
+        if config.FOV and config.FOV.Enabled == true then
+            maxDist = (config.FOV.Radius or 0)
+        end
         local bestPart = nil
         local bestDist = nil
 
@@ -168,7 +172,7 @@ return function(ctx, misc)
                     local viewportPos, onScreen = cam:WorldToViewportPoint(part.Position)
                     if onScreen then
                         local dist = (Vector2.new(viewportPos.X, viewportPos.Y) - mousePos).Magnitude
-                        if dist <= (config.FOV.Radius or 0) then
+                        if dist <= maxDist then
                             if not bestDist or dist < bestDist then
                                 if wallCheck(cam.CFrame.Position, part) then
                                     bestDist = dist
@@ -205,19 +209,19 @@ return function(ctx, misc)
             targetPos = targetPos + (vel * pred)
         end
 
-        if (config.LockMode == "CFrame") then
-            local from = cam.CFrame.Position
-            local cf = CFrame.new(from, targetPos)
-            local alpha = math.clamp(tonumber(config.Sensitivity) or 1, 0, 1)
-            cam.CFrame = cam.CFrame:Lerp(cf, alpha)
-        else
-            local viewportPos, onScreen = cam:WorldToViewportPoint(targetPos)
-            if onScreen and typeof(mousemoverel) == "function" then
-                local mousePos = getMouseViewportPosition()
-                local diff = Vector2.new(viewportPos.X, viewportPos.Y) - mousePos
-                local sens = math.max(tonumber(config.MousemoverSensitivity) or 1, 0)
-                mousemoverel(diff.X * sens, diff.Y * sens)
+        local viewportPos, onScreen = cam:WorldToViewportPoint(targetPos)
+        if onScreen and typeof(mousemoverel) == "function" then
+            local mousePos = getMouseViewportPosition()
+            local diff = Vector2.new(viewportPos.X, viewportPos.Y) - mousePos
+            local sens = math.max(tonumber(config.MousemoverSensitivity) or 1, 0)
+            local dx = diff.X * sens
+            local dy = diff.Y * sens
+            if math.abs(dx) < 0.5 and math.abs(dy) < 0.5 then
+                return
             end
+            dx = (dx >= 0) and math.floor(dx + 0.5) or math.ceil(dx - 0.5)
+            dy = (dy >= 0) and math.floor(dy + 0.5) or math.ceil(dy - 0.5)
+            mousemoverel(dx, dy)
         end
 
         if config.LockOn then
@@ -300,35 +304,42 @@ return function(ctx, misc)
         currentUpdateMode = config.UpdateMode
 
         inputConnBegan = UIS.InputBegan:Connect(function(input, gp)
-            if gp then return end
-            if input.UserInputType == Enum.UserInputType.MouseButton2 then
-                triggerHeld = true
+            if config.TriggerSource == "MouseButton2" then
+                if input.UserInputType == Enum.UserInputType.MouseButton2 then
+                    triggerHeld = true
+                    return
+                end
                 return
             end
-            if input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode == config.TriggerKey then
-                triggerHeld = true
-                return
+            if gp then return end
+            if config.TriggerSource == "Keybind" then
+                if input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode == config.TriggerKey then
+                    triggerHeld = true
+                    return
+                end
             end
         end)
 
         inputConnEnded = UIS.InputEnded:Connect(function(input, gp)
-            if gp then return end
-            if input.UserInputType == Enum.UserInputType.MouseButton2 then
-                triggerHeld = false
+            if config.TriggerSource == "MouseButton2" then
+                if input.UserInputType == Enum.UserInputType.MouseButton2 then
+                    triggerHeld = false
+                    return
+                end
                 return
             end
-            if input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode == config.TriggerKey then
-                triggerHeld = false
-                return
+            if gp then return end
+            if config.TriggerSource == "Keybind" then
+                if input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode == config.TriggerKey then
+                    triggerHeld = false
+                    return
+                end
             end
         end)
 
         aimConn = updateSignal:Connect(function(dt)
             if not config.Enabled then return end
-            local active = true
-            if config.TriggerEnabled == true then
-                active = (triggerHeld == true)
-            end
+            local active = (triggerHeld == true)
             if not active then
                 updateFovVisual(false)
                 return
@@ -348,7 +359,7 @@ return function(ctx, misc)
         State.AimbotTeamCheck = config.TeamCheck
         State.AimbotTeamCheckOption = config.TeamCheckOption
         State.AimbotUpdateMode = config.UpdateMode
-        State.AimbotTriggerEnabled = config.TriggerEnabled
+        State.AimbotTriggerSource = config.TriggerSource
         State.AimbotLockOn = config.LockOn
         State.AimbotSensitivity = 1
         State.AimbotMousemoverSensitivity = config.MousemoverSensitivity
@@ -398,14 +409,14 @@ return function(ctx, misc)
         if typeof(cfg.TeamCheck) == "boolean" then config.TeamCheck = cfg.TeamCheck end
         if typeof(cfg.TeamCheckOption) == "string" then config.TeamCheckOption = cfg.TeamCheckOption end
         if typeof(cfg.UpdateMode) == "string" then config.UpdateMode = cfg.UpdateMode end
-        if typeof(cfg.TriggerEnabled) == "boolean" then config.TriggerEnabled = cfg.TriggerEnabled end
+        if typeof(cfg.TriggerSource) == "string" then config.TriggerSource = cfg.TriggerSource end
         if typeof(cfg.LockOn) == "boolean" then config.LockOn = cfg.LockOn end
         if typeof(cfg.Sensitivity) == "number" then config.Sensitivity = 1 end
-        if typeof(cfg.MousemoverSensitivity) == "number" then config.MousemoverSensitivity = math.clamp(cfg.MousemoverSensitivity, 0, 1) end
+        if typeof(cfg.MousemoverSensitivity) == "number" then config.MousemoverSensitivity = math.clamp(cfg.MousemoverSensitivity, 0, 10) end
         if typeof(cfg.LockMode) == "string" then config.LockMode = cfg.LockMode end
         if typeof(cfg.UseCFrame) == "boolean" then config.UseCFrame = cfg.UseCFrame end
         if typeof(cfg.AimPart) == "string" then config.AimPart = cfg.AimPart end
-        if typeof(cfg.Prediction) == "number" then config.Prediction = math.clamp(cfg.Prediction, 0, 1) end
+        if typeof(cfg.Prediction) == "number" then config.Prediction = math.clamp(cfg.Prediction, -1, 1) end
         if cfg.TriggerKey then
             if typeof(cfg.TriggerKey) == "EnumItem" and cfg.TriggerKey.EnumType == Enum.KeyCode then
                 config.TriggerKey = cfg.TriggerKey
