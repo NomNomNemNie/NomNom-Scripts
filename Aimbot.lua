@@ -11,6 +11,47 @@ return function(ctx, misc)
 
     local M = {}
 
+    local function getEnv()
+        local ok, env = pcall(function()
+            if typeof(getgenv) == "function" then
+                return getgenv()
+            end
+            return nil
+        end)
+        if ok then return env end
+        return nil
+    end
+
+    local function resolveDrawing()
+        local d = rawget(_G, "Drawing")
+        if typeof(d) == "table" and typeof(d.new) == "function" then
+            return d
+        end
+        local env = getEnv()
+        if typeof(env) == "table" then
+            local ed = rawget(env, "Drawing")
+            if typeof(ed) == "table" and typeof(ed.new) == "function" then
+                return ed
+            end
+        end
+        return nil
+    end
+
+    local function resolveMouseMoveRel()
+        local fn = rawget(_G, "mousemoverel")
+        if typeof(fn) == "function" then
+            return fn
+        end
+        local env = getEnv()
+        if typeof(env) == "table" then
+            local efn = rawget(env, "mousemoverel")
+            if typeof(efn) == "function" then
+                return efn
+            end
+        end
+        return nil
+    end
+
     local function getGuiInset()
         if GuiService and GuiService.GetGuiInset then
             local inset = GuiService:GetGuiInset()
@@ -36,8 +77,9 @@ return function(ctx, misc)
     local fovOutline = nil
 
     local function newDrawingCircle()
-        if typeof(Drawing) ~= "table" or typeof(Drawing.new) ~= "function" then return nil end
-        local c = Drawing.new("Circle")
+        local d = resolveDrawing()
+        if not d then return nil end
+        local c = d.new("Circle")
         c.Visible = false
         c.Radius = 120
         c.Thickness = 1
@@ -210,7 +252,8 @@ return function(ctx, misc)
         end
 
         local viewportPos, onScreen = cam:WorldToViewportPoint(targetPos)
-        if onScreen and typeof(mousemoverel) == "function" then
+        local moveRel = resolveMouseMoveRel()
+        if onScreen and typeof(moveRel) == "function" then
             local mousePos = getMouseViewportPosition()
             local diff = Vector2.new(viewportPos.X, viewportPos.Y) - mousePos
             local sens = math.max(tonumber(config.MousemoverSensitivity) or 1, 0)
@@ -221,7 +264,7 @@ return function(ctx, misc)
             end
             dx = (dx >= 0) and math.floor(dx + 0.5) or math.ceil(dx - 0.5)
             dy = (dy >= 0) and math.floor(dy + 0.5) or math.ceil(dy - 0.5)
-            mousemoverel(dx, dy)
+            moveRel(dx, dy)
         end
 
         if config.LockOn then
