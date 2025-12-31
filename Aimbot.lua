@@ -86,7 +86,8 @@ return function(ctx, misc)
 		Aimbot_Settings.Sensitivity2 = State.AimbotSensitivity2 or 1
 		Aimbot_Settings.LockMode = _normalizeLockMode(State.AimbotLockMode)
 		Aimbot_Settings.LockPart = State.AimbotLockPart or "Head"
-		Aimbot_Settings.TriggerKey = _normalizeTriggerKey(State.AimbotTriggerKey)
+		State.AimbotTriggerKey = Enum.UserInputType.MouseButton2
+		Aimbot_Settings.TriggerKey = Enum.UserInputType.MouseButton2
 
 		if Aimbot_DeveloperSettings then
 			Aimbot_DeveloperSettings.UpdateMode = State.AimbotUpdateMode or "RenderStepped"
@@ -191,8 +192,8 @@ return function(ctx, misc)
 	end
 
 	function M.setTriggerKey(key)
-		State.AimbotTriggerKey = key
-		if Aimbot_Settings then Aimbot_Settings.TriggerKey = _normalizeTriggerKey(State.AimbotTriggerKey) end
+		State.AimbotTriggerKey = Enum.UserInputType.MouseButton2
+		if Aimbot_Settings then Aimbot_Settings.TriggerKey = Enum.UserInputType.MouseButton2 end
 	end
 
 	function M.setUpdateMode(mode)
