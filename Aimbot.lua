@@ -173,8 +173,8 @@ return function(ctx, misc)
 				local char = plr.Character
 				local hum = char and char:FindFirstChildOfClass("Humanoid")
 				if char and hum and hum.Health > 0 then
+					local okTeam = true
 					if State.AimbotTeamCheck == true then
-						local okTeam = true
 						pcall(function()
 							if State.AimbotTeamCheckOption == "TeamColor" then
 								okTeam = (plr.TeamColor ~= localPlayer.TeamColor)
@@ -182,26 +182,24 @@ return function(ctx, misc)
 								okTeam = (plr.Team ~= localPlayer.Team)
 							end
 						end)
-						if not okTeam then
-							goto continue
-						end
 					end
 
-					local partName = tostring(State.AimbotLockPart or "Head")
-					local part = char:FindFirstChild(partName) or char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
-					if part then
-						local screenPos, onScreen = cam:WorldToViewportPoint(part.Position)
-						if onScreen and screenPos.Z > 0 then
-							local d = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-							if d <= radius and d < bestDist then
-								bestDist = d
-								bestPlr = plr
+					if okTeam then
+						local partName = tostring(State.AimbotLockPart or "Head")
+						local part = char:FindFirstChild(partName) or char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
+						if part then
+							local screenPos, onScreen = cam:WorldToViewportPoint(part.Position)
+							if onScreen and screenPos.Z > 0 then
+								local d = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+								if d <= radius and d < bestDist then
+									bestDist = d
+									bestPlr = plr
+								end
 							end
 						end
 					end
 				end
 			end
-			::continue::
 		end
 
 		return bestPlr
