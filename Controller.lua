@@ -74,6 +74,27 @@ return function(ctx, deps)
             cfg.TeamCheckOption = tostring(cfg.TeamCheckOption)
         end
 
+        if typeof(cfg.FOV) == "table" then
+            local f = cfg.FOV
+            if f.Visible ~= nil and cfg.FOVVisible == nil then cfg.FOVVisible = (f.Visible == true) end
+            if f.Enabled ~= nil and cfg.FOVVisible == nil then cfg.FOVVisible = (f.Enabled == true) end
+            if f.Radius ~= nil and cfg.FOVRadius == nil then cfg.FOVRadius = f.Radius end
+            if f.NumSides ~= nil and cfg.FOVNumSides == nil then cfg.FOVNumSides = f.NumSides end
+            if f.Sides ~= nil and cfg.FOVNumSides == nil then cfg.FOVNumSides = f.Sides end
+            if f.Filled ~= nil and cfg.FOVFilled == nil then cfg.FOVFilled = (f.Filled == true) end
+            if f.Transparency ~= nil and cfg.FOVTransparency == nil then cfg.FOVTransparency = f.Transparency end
+            if f.Thickness ~= nil and cfg.FOVThickness == nil then cfg.FOVThickness = f.Thickness end
+            if f.Color ~= nil and cfg.FOVColor == nil then cfg.FOVColor = f.Color end
+            if f.LockedColor ~= nil and cfg.FOVLockedColor == nil then cfg.FOVLockedColor = f.LockedColor end
+            if f.OutlineColor ~= nil and cfg.FOVOutlineColor == nil then cfg.FOVOutlineColor = f.OutlineColor end
+
+            if f.Rainbow ~= nil and cfg.FOVRainbow == nil then cfg.FOVRainbow = (f.Rainbow == true) end
+            if f.RainbowColor ~= nil and cfg.FOVRainbow == nil then cfg.FOVRainbow = (f.RainbowColor == true) end
+            if f.RainbowRGB ~= nil and cfg.FOVRainbowRGB == nil then cfg.FOVRainbowRGB = (f.RainbowRGB == true) end
+            if f.RainbowOutlineRGB ~= nil and cfg.FOVRainbowOutlineRGB == nil then cfg.FOVRainbowOutlineRGB = (f.RainbowOutlineRGB == true) end
+            if f.RainbowOutlineColor ~= nil and cfg.FOVRainbowOutlineRGB == nil then cfg.FOVRainbowOutlineRGB = (f.RainbowOutlineColor == true) end
+        end
+
         if cfg.TeamCheck ~= nil and aimbot and aimbot.setTeamCheck then aimbot.setTeamCheck(cfg.TeamCheck == true) end
         if cfg.WallCheck ~= nil and aimbot and aimbot.setWallCheck then aimbot.setWallCheck(cfg.WallCheck == true) end
         if cfg.AliveCheck ~= nil and aimbot and aimbot.setAliveCheck then aimbot.setAliveCheck(cfg.AliveCheck == true) end

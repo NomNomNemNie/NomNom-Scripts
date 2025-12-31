@@ -3,6 +3,7 @@ return function(ctx, misc)
 	local RunService = Services.RunService
 	local State = ctx.State
 	local Player = ctx.Player
+	local httpGet = ctx.httpGet
 
 	local M = {}
 
@@ -17,6 +18,9 @@ return function(ctx, misc)
 
 	local function loadAimbot()
 		local success, result = pcall(function()
+			if typeof(httpGet) == "function" then
+				return loadstring(httpGet("https://raw.githubusercontent.com/Exunys/Roblox-Functions-Library/main/Library.lua"))()
+			end
 			return loadstring(game:HttpGet("https://raw.githubusercontent.com/Exunys/Roblox-Functions-Library/main/Library.lua"))()
 		end)
 		
@@ -26,6 +30,9 @@ return function(ctx, misc)
 		end
 		
 		success, result = pcall(function()
+			if typeof(httpGet) == "function" then
+				return loadstring(httpGet("https://raw.githubusercontent.com/Exunys/Aimbot-V3/main/src/Aimbot.lua"))()
+			end
 			return loadstring(game:HttpGet("https://raw.githubusercontent.com/Exunys/Aimbot-V3/main/src/Aimbot.lua"))()
 		end)
 		
@@ -42,6 +49,25 @@ return function(ctx, misc)
 		return true
 	end
 
+	local function _normalizeLockMode(v)
+		if v == 1 or v == 2 then return v end
+		if typeof(v) == "string" then
+			if v == "CFrame" then return 1 end
+			if v == "mousemoverel" then return 2 end
+		end
+		return 1
+	end
+
+	local function _normalizeTriggerKey(v)
+		if typeof(v) == "EnumItem" and v.EnumType == Enum.KeyCode then
+			return v.Name
+		end
+		if typeof(v) == "string" and v ~= "" then
+			return v
+		end
+		return "MB2"
+	end
+
 	local function applySettings()
 		if not Aimbot_Settings then return end
 		
@@ -54,9 +80,9 @@ return function(ctx, misc)
 		Aimbot_Settings.OffsetIncrement = State.AimbotOffsetIncrement or 10
 		Aimbot_Settings.Sensitivity = State.AimbotSensitivity or 0
 		Aimbot_Settings.Sensitivity2 = State.AimbotSensitivity2 or 1
-		Aimbot_Settings.LockMode = State.AimbotLockMode or 1
+		Aimbot_Settings.LockMode = _normalizeLockMode(State.AimbotLockMode)
 		Aimbot_Settings.LockPart = State.AimbotLockPart or "Head"
-		Aimbot_Settings.TriggerKey = State.AimbotTriggerKey or "MB2"
+		Aimbot_Settings.TriggerKey = _normalizeTriggerKey(State.AimbotTriggerKey)
 		
 		Aimbot_DeveloperSettings.UpdateMode = State.AimbotUpdateMode or "RenderStepped"
 		Aimbot_DeveloperSettings.TeamCheckOption = State.AimbotTeamCheckOption or "TeamColor"
