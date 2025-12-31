@@ -10,11 +10,23 @@ return function(ctx, misc)
 	local Aimbot_DeveloperSettings = nil
 	local Aimbot_FOV = nil
 	local _loadedOnce = false
-	local _shiftlockConn = nil
+	local _aimAssistConn = nil
 	local _prevMouseBehavior = nil
+	local _restartQueued = false
 
 	local function showRobloxNotification(title, text)
 		return misc.showRobloxNotification(title, text)
+	end
+
+	local function requestRestart()
+		if _restartQueued then return end
+		_restartQueued = true
+		task.delay(0.05, function()
+			_restartQueued = false
+			if Aimbot and Aimbot.Restart then
+				pcall(function() Aimbot.Restart() end)
+			end
+		end)
 	end
 
 	local function loadAimbot()
@@ -78,7 +90,8 @@ return function(ctx, misc)
 		if not Aimbot_Settings then return end
 
 		Aimbot_Settings.Enabled = State.AimbotEnabled or false
-		Aimbot_Settings.WallCheck = State.AimbotWallCheck or false
+		State.AimbotWallCheck = false
+		Aimbot_Settings.WallCheck = false
 		Aimbot_Settings.AliveCheck = (State.AimbotAliveCheck ~= false)
 		Aimbot_Settings.TeamCheck = (State.AimbotTeamCheck ~= false)
 		Aimbot_Settings.Toggle = State.AimbotToggle or false
@@ -124,12 +137,74 @@ return function(ctx, misc)
 				Aimbot_FOV.OutlineColor = State.AimbotFOVOutlineColor or Color3.fromRGB(0, 0, 0)
 			end
 			if Aimbot_FOV.RainbowRGB then
-				Aimbot_FOV.RainbowRGB = State.AimbotFOVRainbowRGB or false
+				Aimbot_FOV.RainbowRGB = fovRainbow or false
 			end
 			if Aimbot_FOV.RainbowOutlineRGB then
 				Aimbot_FOV.RainbowOutlineRGB = fovOutlineRainbow or false
 			end
 		end
+	end
+
+	local function _getClosestTargetInFov()
+		local Players = Services and Services.Players
+		if not Players then return nil end
+		local cam = workspace and workspace.CurrentCamera
+		if not cam then return nil end
+		local localPlayer = Players.LocalPlayer
+		if not localPlayer then return nil end
+
+		local mousePos = nil
+		pcall(function()
+			local vp = cam.ViewportSize
+			local UIS = Services and Services.UIS
+			if UIS and typeof(UIS.GetMouseLocation) == "function" then
+				mousePos = UIS:GetMouseLocation()
+			else
+				mousePos = Vector2.new(vp.X * 0.5, vp.Y * 0.5)
+			end
+		end)
+		if not mousePos then return nil end
+
+		local radius = tonumber(State.AimbotFOVRadius) or 120
+		local bestPlr, bestDist = nil, math.huge
+
+		for _, plr in ipairs(Players:GetPlayers()) do
+			if plr ~= localPlayer then
+				local char = plr.Character
+				local hum = char and char:FindFirstChildOfClass("Humanoid")
+				if char and hum and hum.Health > 0 then
+					if State.AimbotTeamCheck == true then
+						local okTeam = true
+						pcall(function()
+							if State.AimbotTeamCheckOption == "TeamColor" then
+								okTeam = (plr.TeamColor ~= localPlayer.TeamColor)
+							else
+								okTeam = (plr.Team ~= localPlayer.Team)
+							end
+						end)
+						if not okTeam then
+							goto continue
+						end
+					end
+
+					local partName = tostring(State.AimbotLockPart or "Head")
+					local part = char:FindFirstChild(partName) or char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
+					if part then
+						local screenPos, onScreen = cam:WorldToViewportPoint(part.Position)
+						if onScreen and screenPos.Z > 0 then
+							local d = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+							if d <= radius and d < bestDist then
+								bestDist = d
+								bestPlr = plr
+							end
+						end
+					end
+				end
+			end
+			::continue::
+		end
+
+		return bestPlr
 	end
 
 	local function ensureLoaded()
@@ -145,16 +220,16 @@ return function(ctx, misc)
 		end
 		_loadedOnce = true
 
-		-- Auto shiftlock while holding trigger in CFrame mode
+		-- Lock mouse to center only while actually aiming at a valid target.
 		pcall(function()
 			local UIS = Services and Services.UIS
 			local RunService = Services and Services.RunService
-			if typeof(UIS) ~= "Instance" or typeof(RunService) ~= "Instance" then return end
+			local Players = Services and Services.Players
+			if typeof(UIS) ~= "Instance" or typeof(RunService) ~= "Instance" or typeof(Players) ~= "Instance" then return end
 
-			if _shiftlockConn then _shiftlockConn:Disconnect() end
+			if _aimAssistConn then _aimAssistConn:Disconnect() end
 			_prevMouseBehavior = UIS.MouseBehavior
-			_shiftlockConn = RunService.RenderStepped:Connect(function()
-				local should = (State.AimbotEnabled == true) and (State.AimbotLockMode == 1)
+			_aimAssistConn = RunService.RenderStepped:Connect(function()
 				local key = _normalizeTriggerKey(State.AimbotTriggerKey)
 				local down = false
 				if typeof(key) == "EnumItem" then
@@ -165,10 +240,28 @@ return function(ctx, misc)
 					end
 				end
 
-				if should and down then
+				local aiming = false
+				local targetPlr = nil
+				if State.AimbotEnabled == true and down then
+					targetPlr = _getClosestTargetInFov()
+					aiming = (targetPlr ~= nil)
+				end
+
+				if aiming then
 					if UIS.MouseBehavior ~= Enum.MouseBehavior.LockCenter then
 						_prevMouseBehavior = _prevMouseBehavior or UIS.MouseBehavior
 						UIS.MouseBehavior = Enum.MouseBehavior.LockCenter
+					end
+					if State.AimbotLockOn == true and targetPlr then
+						local char = Players.LocalPlayer and Players.LocalPlayer.Character
+						local hrp = char and char:FindFirstChild("HumanoidRootPart")
+						local tchar = targetPlr.Character
+						local tpart = tchar and (tchar:FindFirstChild("HumanoidRootPart") or tchar:FindFirstChild("Head"))
+						if hrp and tpart then
+							local pos = hrp.Position
+							local look = Vector3.new(tpart.Position.X, pos.Y, tpart.Position.Z)
+							hrp.CFrame = CFrame.new(pos, look)
+						end
 					end
 				else
 					if UIS.MouseBehavior == Enum.MouseBehavior.LockCenter and _prevMouseBehavior then
@@ -196,8 +289,8 @@ return function(ctx, misc)
 	end
 
 	function M.setWallCheck(on)
-		State.AimbotWallCheck = (on == true)
-		if Aimbot_Settings then Aimbot_Settings.WallCheck = State.AimbotWallCheck end
+		State.AimbotWallCheck = false
+		if Aimbot_Settings then Aimbot_Settings.WallCheck = false end
 	end
 
 	function M.setAliveCheck(on)
@@ -272,6 +365,7 @@ return function(ctx, misc)
 	function M.setRainbowSpeed(speed)
 		State.AimbotRainbowSpeed = math.clamp(tonumber(speed) or 1, 0.5, 3)
 		if Aimbot_DeveloperSettings then Aimbot_DeveloperSettings.RainbowSpeed = State.AimbotRainbowSpeed end
+		requestRestart()
 	end
 
 	function M.setFOVVisible(on)
@@ -311,7 +405,12 @@ return function(ctx, misc)
 
 	function M.setFOVRainbow(on)
 		State.AimbotFOVRainbow = (on == true)
-		if Aimbot_FOV then Aimbot_FOV.Rainbow = State.AimbotFOVRainbow end
+		if Aimbot_FOV then
+			if Aimbot_FOV.Rainbow ~= nil then Aimbot_FOV.Rainbow = State.AimbotFOVRainbow end
+			if Aimbot_FOV.RainbowColor ~= nil then Aimbot_FOV.RainbowColor = State.AimbotFOVRainbow end
+			if Aimbot_FOV.RainbowRGB ~= nil then Aimbot_FOV.RainbowRGB = State.AimbotFOVRainbow end
+		end
+		requestRestart()
 	end
 
 	function M.setFOVLockedColor(color)
@@ -327,11 +426,14 @@ return function(ctx, misc)
 	function M.setFOVRainbowRGB(on)
 		State.AimbotFOVRainbowRGB = (on == true)
 		if Aimbot_FOV and Aimbot_FOV.RainbowRGB then Aimbot_FOV.RainbowRGB = State.AimbotFOVRainbowRGB end
+		requestRestart()
 	end
 
 	function M.setFOVRainbowOutlineRGB(on)
 		State.AimbotFOVRainbowOutlineRGB = (on == true)
 		if Aimbot_FOV and Aimbot_FOV.RainbowOutlineRGB then Aimbot_FOV.RainbowOutlineRGB = State.AimbotFOVRainbowOutlineRGB end
+		if Aimbot_FOV and Aimbot_FOV.RainbowOutlineColor ~= nil then Aimbot_FOV.RainbowOutlineColor = State.AimbotFOVRainbowOutlineRGB end
+		requestRestart()
 	end
 
 	function M.blacklistPlayer(playerName)
@@ -360,8 +462,8 @@ return function(ctx, misc)
 		end
 		pcall(function()
 			local UIS = Services and Services.UIS
-			if _shiftlockConn then _shiftlockConn:Disconnect() end
-			_shiftlockConn = nil
+			if _aimAssistConn then _aimAssistConn:Disconnect() end
+			_aimAssistConn = nil
 			if UIS and _prevMouseBehavior then
 				UIS.MouseBehavior = _prevMouseBehavior
 			end
