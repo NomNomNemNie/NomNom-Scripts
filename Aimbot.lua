@@ -55,13 +55,21 @@ return function(ctx, misc)
 	end
 
 	local function _normalizeTriggerKey(v)
-		if typeof(v) == "EnumItem" and v.EnumType == Enum.KeyCode then
-			return v.Name
+		-- Exunys Aimbot-V3 expects an EnumItem (KeyCode or UserInputType)
+		if typeof(v) == "EnumItem" then
+			if v.EnumType == Enum.KeyCode or v.EnumType == Enum.UserInputType then
+				return v
+			end
 		end
 		if typeof(v) == "string" and v ~= "" then
-			return v
+			local s = tostring(v)
+			if s == "MB1" or s == "MouseButton1" then return Enum.UserInputType.MouseButton1 end
+			if s == "MB2" or s == "MouseButton2" then return Enum.UserInputType.MouseButton2 end
+			if s == "MB3" or s == "MouseButton3" then return Enum.UserInputType.MouseButton3 end
+			local kc = Enum.KeyCode[s]
+			if kc then return kc end
 		end
-		return "MB2"
+		return Enum.UserInputType.MouseButton2
 	end
 
 	local function applySettings()
