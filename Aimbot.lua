@@ -10,6 +10,8 @@ return function(ctx, misc)
 	local Aimbot_DeveloperSettings = nil
 	local Aimbot_FOV = nil
 	local _loadedOnce = false
+	local _shiftlockConn = nil
+	local _prevMouseBehavior = nil
 
 	local function showRobloxNotification(title, text)
 		return misc.showRobloxNotification(title, text)
@@ -86,8 +88,13 @@ return function(ctx, misc)
 		Aimbot_Settings.Sensitivity2 = State.AimbotSensitivity2 or 1
 		Aimbot_Settings.LockMode = _normalizeLockMode(State.AimbotLockMode)
 		Aimbot_Settings.LockPart = State.AimbotLockPart or "Head"
-		State.AimbotTriggerKey = Enum.UserInputType.MouseButton2
-		Aimbot_Settings.TriggerKey = Enum.UserInputType.MouseButton2
+		Aimbot_Settings.TriggerKey = _normalizeTriggerKey(State.AimbotTriggerKey)
+		if Aimbot_Settings.LockOn ~= nil then
+			Aimbot_Settings.LockOn = (State.AimbotLockOn == true)
+		end
+		if Aimbot_Settings.Prediction ~= nil and State.AimbotPrediction ~= nil then
+			Aimbot_Settings.Prediction = State.AimbotPrediction
+		end
 
 		if Aimbot_DeveloperSettings then
 			Aimbot_DeveloperSettings.UpdateMode = State.AimbotUpdateMode or "RenderStepped"
@@ -103,7 +110,15 @@ return function(ctx, misc)
 			Aimbot_FOV.Transparency = State.AimbotFOVTransparency or 0.5
 			Aimbot_FOV.Thickness = State.AimbotFOVThickness or 1
 			Aimbot_FOV.Color = State.AimbotFOVColor or Color3.fromRGB(255, 255, 255)
-			Aimbot_FOV.Rainbow = State.AimbotFOVRainbow or false
+			local fovRainbow = (State.AimbotFOVRainbow ~= nil and State.AimbotFOVRainbow) or (State.AimbotFOVRainbowColor == true)
+			local fovOutlineRainbow = (State.AimbotFOVRainbowOutlineRGB ~= nil and State.AimbotFOVRainbowOutlineRGB) or (State.AimbotFOVRainbowOutlineColor == true)
+			Aimbot_FOV.Rainbow = fovRainbow or false
+			if Aimbot_FOV.RainbowColor ~= nil then
+				Aimbot_FOV.RainbowColor = fovRainbow or false
+			end
+			if Aimbot_FOV.RainbowOutlineColor ~= nil then
+				Aimbot_FOV.RainbowOutlineColor = fovOutlineRainbow or false
+			end
 			Aimbot_FOV.LockedColor = State.AimbotFOVLockedColor or Color3.fromRGB(255, 70, 70)
 			if Aimbot_FOV.OutlineColor then
 				Aimbot_FOV.OutlineColor = State.AimbotFOVOutlineColor or Color3.fromRGB(0, 0, 0)
@@ -112,7 +127,7 @@ return function(ctx, misc)
 				Aimbot_FOV.RainbowRGB = State.AimbotFOVRainbowRGB or false
 			end
 			if Aimbot_FOV.RainbowOutlineRGB then
-				Aimbot_FOV.RainbowOutlineRGB = State.AimbotFOVRainbowOutlineRGB or false
+				Aimbot_FOV.RainbowOutlineRGB = fovOutlineRainbow or false
 			end
 		end
 	end
@@ -129,6 +144,40 @@ return function(ctx, misc)
 			pcall(function() Aimbot.Load() end)
 		end
 		_loadedOnce = true
+
+		-- Auto shiftlock while holding trigger in CFrame mode
+		pcall(function()
+			local UIS = Services and Services.UIS
+			local RunService = Services and Services.RunService
+			if typeof(UIS) ~= "Instance" or typeof(RunService) ~= "Instance" then return end
+
+			if _shiftlockConn then _shiftlockConn:Disconnect() end
+			_prevMouseBehavior = UIS.MouseBehavior
+			_shiftlockConn = RunService.RenderStepped:Connect(function()
+				local should = (State.AimbotEnabled == true) and (State.AimbotLockMode == 1)
+				local key = _normalizeTriggerKey(State.AimbotTriggerKey)
+				local down = false
+				if typeof(key) == "EnumItem" then
+					if key.EnumType == Enum.UserInputType then
+						down = UIS:IsMouseButtonPressed(key)
+					elseif key.EnumType == Enum.KeyCode then
+						down = UIS:IsKeyDown(key)
+					end
+				end
+
+				if should and down then
+					if UIS.MouseBehavior ~= Enum.MouseBehavior.LockCenter then
+						_prevMouseBehavior = _prevMouseBehavior or UIS.MouseBehavior
+						UIS.MouseBehavior = Enum.MouseBehavior.LockCenter
+					end
+				else
+					if UIS.MouseBehavior == Enum.MouseBehavior.LockCenter and _prevMouseBehavior then
+						UIS.MouseBehavior = _prevMouseBehavior
+					end
+				end
+			end)
+		end)
+
 		return true
 	end
 
@@ -177,7 +226,7 @@ return function(ctx, misc)
 	end
 
 	function M.setSensitivity2(value)
-		State.AimbotSensitivity2 = math.clamp(tonumber(value) or 1, 0, 5)
+		State.AimbotSensitivity2 = math.clamp(tonumber(value) or 2, 2, 10)
 		if Aimbot_Settings then Aimbot_Settings.Sensitivity2 = State.AimbotSensitivity2 end
 	end
 
@@ -191,9 +240,23 @@ return function(ctx, misc)
 		if Aimbot_Settings then Aimbot_Settings.LockPart = State.AimbotLockPart end
 	end
 
+	function M.setLockOn(on)
+		State.AimbotLockOn = (on == true)
+		if Aimbot_Settings and Aimbot_Settings.LockOn ~= nil then
+			Aimbot_Settings.LockOn = State.AimbotLockOn
+		end
+	end
+
+	function M.setPrediction(value)
+		State.AimbotPrediction = tonumber(value) or 0
+		if Aimbot_Settings and Aimbot_Settings.Prediction ~= nil then
+			Aimbot_Settings.Prediction = State.AimbotPrediction
+		end
+	end
+
 	function M.setTriggerKey(key)
-		State.AimbotTriggerKey = Enum.UserInputType.MouseButton2
-		if Aimbot_Settings then Aimbot_Settings.TriggerKey = Enum.UserInputType.MouseButton2 end
+		State.AimbotTriggerKey = key
+		if Aimbot_Settings then Aimbot_Settings.TriggerKey = _normalizeTriggerKey(State.AimbotTriggerKey) end
 	end
 
 	function M.setUpdateMode(mode)
@@ -295,6 +358,14 @@ return function(ctx, misc)
 		if Aimbot and Aimbot.Exit then
 			Aimbot:Exit()
 		end
+		pcall(function()
+			local UIS = Services and Services.UIS
+			if _shiftlockConn then _shiftlockConn:Disconnect() end
+			_shiftlockConn = nil
+			if UIS and _prevMouseBehavior then
+				UIS.MouseBehavior = _prevMouseBehavior
+			end
+		end)
 		Aimbot = nil
 		Aimbot_Settings = nil
 		Aimbot_DeveloperSettings = nil

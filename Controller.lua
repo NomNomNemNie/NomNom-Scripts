@@ -109,6 +109,28 @@ return function(ctx, deps)
         if cfg.LockPart ~= nil and aimbot and aimbot.setLockPart then aimbot.setLockPart(cfg.LockPart) end
         if cfg.TriggerKey ~= nil and aimbot and aimbot.setTriggerKey then aimbot.setTriggerKey(cfg.TriggerKey) end
 
+        if cfg.LockOn ~= nil and aimbot and aimbot.setLockOn then aimbot.setLockOn(cfg.LockOn == true) end
+        if cfg.Prediction ~= nil and aimbot and aimbot.setPrediction then aimbot.setPrediction(cfg.Prediction) end
+
+        if cfg.Blacklist ~= nil and aimbot and aimbot.blacklistPlayer then
+            if typeof(cfg.Blacklist) == "table" then
+                for name, enabled in pairs(cfg.Blacklist) do
+                    if enabled == true then
+                        pcall(function() aimbot.blacklistPlayer(name) end)
+                    end
+                end
+            end
+        end
+        if cfg.Whitelist ~= nil and aimbot and aimbot.whitelistPlayer then
+            if typeof(cfg.Whitelist) == "table" then
+                for name, enabled in pairs(cfg.Whitelist) do
+                    if enabled == true then
+                        pcall(function() aimbot.whitelistPlayer(name) end)
+                    end
+                end
+            end
+        end
+
         if cfg.UpdateMode ~= nil and aimbot and aimbot.setUpdateMode then aimbot.setUpdateMode(cfg.UpdateMode) end
         if cfg.TeamCheckOption ~= nil and aimbot and aimbot.setTeamCheckOption then aimbot.setTeamCheckOption(cfg.TeamCheckOption) end
         if cfg.RainbowSpeed ~= nil and aimbot and aimbot.setRainbowSpeed then aimbot.setRainbowSpeed(cfg.RainbowSpeed) end
