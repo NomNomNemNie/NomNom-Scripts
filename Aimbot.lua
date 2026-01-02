@@ -120,6 +120,9 @@ return function(ctx, misc)
 		end
 
 		if Aimbot_FOV then
+			if Aimbot_FOV.Enabled ~= nil then
+				Aimbot_FOV.Enabled = (State.AimbotFOVEnabled == true)
+			end
 			Aimbot_FOV.Visible = (State.AimbotFOVVisible ~= false)
 			Aimbot_FOV.Radius = State.AimbotFOVRadius or 100
 			Aimbot_FOV.NumSides = State.AimbotFOVNumSides or 60
@@ -439,6 +442,13 @@ return function(ctx, misc)
 	function M.setFOVVisible(on)
 		State.AimbotFOVVisible = (on == true)
 		if Aimbot_FOV then Aimbot_FOV.Visible = State.AimbotFOVVisible end
+	end
+
+	function M.setFOVEnabled(on)
+		State.AimbotFOVEnabled = (on == true)
+		if Aimbot_FOV and Aimbot_FOV.Enabled ~= nil then
+			Aimbot_FOV.Enabled = State.AimbotFOVEnabled
+		end
 	end
 
 	function M.setFOVRadius(radius)

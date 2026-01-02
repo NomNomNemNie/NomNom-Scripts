@@ -77,7 +77,7 @@ return function(ctx, deps)
         if typeof(cfg.FOV) == "table" then
             local f = cfg.FOV
             if f.Visible ~= nil and cfg.FOVVisible == nil then cfg.FOVVisible = (f.Visible == true) end
-            if f.Enabled ~= nil and cfg.FOVVisible == nil then cfg.FOVVisible = (f.Enabled == true) end
+            if f.Enabled ~= nil and cfg.FOVEnabled == nil then cfg.FOVEnabled = (f.Enabled == true) end
             if f.Radius ~= nil and cfg.FOVRadius == nil then cfg.FOVRadius = f.Radius end
             if f.NumSides ~= nil and cfg.FOVNumSides == nil then cfg.FOVNumSides = f.NumSides end
             if f.Sides ~= nil and cfg.FOVNumSides == nil then cfg.FOVNumSides = f.Sides end
@@ -136,6 +136,7 @@ return function(ctx, deps)
         if cfg.RainbowSpeed ~= nil and aimbot and aimbot.setRainbowSpeed then aimbot.setRainbowSpeed(cfg.RainbowSpeed) end
 
         if cfg.FOVVisible ~= nil and aimbot and aimbot.setFOVVisible then aimbot.setFOVVisible(cfg.FOVVisible == true) end
+        if cfg.FOVEnabled ~= nil and aimbot and aimbot.setFOVEnabled then aimbot.setFOVEnabled(cfg.FOVEnabled == true) end
         if cfg.FOVRadius ~= nil and aimbot and aimbot.setFOVRadius then aimbot.setFOVRadius(cfg.FOVRadius) end
         if cfg.FOVNumSides ~= nil and aimbot and aimbot.setFOVNumSides then aimbot.setFOVNumSides(cfg.FOVNumSides) end
         if cfg.FOVFilled ~= nil and aimbot and aimbot.setFOVFilled then aimbot.setFOVFilled(cfg.FOVFilled == true) end
