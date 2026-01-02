@@ -88,6 +88,9 @@ return function(ctx, misc)
 		end
 		if typeof(v) == "string" and v ~= "" then
 			local s = tostring(v)
+			if s == "RMB" or s == "MouseRight" or s == "RightMouse" or s == "RightMouseButton" then return Enum.UserInputType.MouseButton2 end
+			if s == "LMB" or s == "MouseLeft" or s == "LeftMouse" or s == "LeftMouseButton" then return Enum.UserInputType.MouseButton1 end
+			if s == "MMB" or s == "MouseMiddle" or s == "MiddleMouse" or s == "MiddleMouseButton" then return Enum.UserInputType.MouseButton3 end
 			if s == "MB1" or s == "MouseButton1" then return Enum.UserInputType.MouseButton1 end
 			if s == "MB2" or s == "MouseButton2" then return Enum.UserInputType.MouseButton2 end
 			if s == "MB3" or s == "MouseButton3" then return Enum.UserInputType.MouseButton3 end
