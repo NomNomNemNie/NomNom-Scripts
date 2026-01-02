@@ -293,18 +293,6 @@ return function(ctx, misc)
 					wantLock = (aiming and lockMode == 1 and useCFrame)
 				end
 
-				if triggerActive and aiming and State.AimbotLockOn == true and targetPlr then
-					local char = Players.LocalPlayer and Players.LocalPlayer.Character
-					local hrp = char and char:FindFirstChild("HumanoidRootPart")
-					local tchar = targetPlr.Character
-					local tpart = tchar and (tchar:FindFirstChild("HumanoidRootPart") or tchar:FindFirstChild("Head"))
-					if hrp and tpart then
-						local pos = hrp.Position
-						local look = Vector3.new(tpart.Position.X, pos.Y, tpart.Position.Z)
-						hrp.CFrame = CFrame.new(pos, look)
-					end
-				end
-
 				if wantLock then
 					if not _forcedMouseLock then
 						_forcedMouseLock = true
@@ -333,6 +321,19 @@ return function(ctx, misc)
 						end
 						_forcedMouseLock = false
 						_mouseBehaviorBeforeForce = nil
+					end
+				end
+
+				-- In CFrame mode: lock mouse first, then rotate character to face target (lockcam).
+				if triggerActive and aiming and State.AimbotLockOn == true and targetPlr then
+					local char = Players.LocalPlayer and Players.LocalPlayer.Character
+					local hrp = char and char:FindFirstChild("HumanoidRootPart")
+					local tchar = targetPlr.Character
+					local tpart = tchar and (tchar:FindFirstChild("HumanoidRootPart") or tchar:FindFirstChild("Head"))
+					if hrp and tpart then
+						local pos = hrp.Position
+						local look = Vector3.new(tpart.Position.X, pos.Y, tpart.Position.Z)
+						hrp.CFrame = CFrame.new(pos, look)
 					end
 				end
 			end)

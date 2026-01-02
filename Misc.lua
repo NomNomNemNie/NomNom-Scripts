@@ -40,13 +40,13 @@ return function(ctx)
                 if typeof(cfg.OrbitKeyName) == "string" and Enum.KeyCode[cfg.OrbitKeyName] then State.OrbitKey = Enum.KeyCode[cfg.OrbitKeyName] end
                 if typeof(cfg.AimbotKeyName) == "string" and Enum.KeyCode[cfg.AimbotKeyName] then State.AimbotKey = Enum.KeyCode[cfg.AimbotKeyName] end
                 if typeof(cfg.AimbotTriggerKeyName) == "string" then
-                    if Enum.KeyCode[cfg.AimbotTriggerKeyName] then
-                        State.AimbotTriggerKey = Enum.KeyCode[cfg.AimbotTriggerKeyName]
-                    elseif Enum.UserInputType[cfg.AimbotTriggerKeyName] then
+                    if Enum.UserInputType[cfg.AimbotTriggerKeyName] then
                         local uit = Enum.UserInputType[cfg.AimbotTriggerKeyName]
                         if uit == Enum.UserInputType.MouseButton1 or uit == Enum.UserInputType.MouseButton2 or uit == Enum.UserInputType.MouseButton3 then
                             State.AimbotTriggerKey = uit
                         end
+                    elseif Enum.KeyCode[cfg.AimbotTriggerKeyName] then
+                        State.AimbotTriggerKey = Enum.KeyCode[cfg.AimbotTriggerKeyName]
                     end
                 end
 
@@ -261,15 +261,15 @@ return function(ctx)
         end
         if typeof(v) == "string" and v ~= "" then
             local s = tostring(v)
-            if Enum.KeyCode[s] then
-                return Enum.KeyCode[s]
-            end
             if s == "MB1" or s == "MouseButton1" then return Enum.UserInputType.MouseButton1 end
             if s == "MB2" or s == "MouseButton2" then return Enum.UserInputType.MouseButton2 end
             if s == "MB3" or s == "MouseButton3" then return Enum.UserInputType.MouseButton3 end
             local uit = Enum.UserInputType[s]
             if uit and (uit == Enum.UserInputType.MouseButton1 or uit == Enum.UserInputType.MouseButton2 or uit == Enum.UserInputType.MouseButton3) then
                 return uit
+            end
+            if Enum.KeyCode[s] then
+                return Enum.KeyCode[s]
             end
         end
         return nil
