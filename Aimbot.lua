@@ -303,7 +303,7 @@ return function(ctx, misc)
 				if triggerActive then
 					targetPlr = _getClosestTargetInFov()
 					aiming = (targetPlr ~= nil)
-					wantLock = (lockMode == 1 and useCFrame)
+					wantLock = false
 				end
 
 				if wantLock then
