@@ -15,6 +15,7 @@ return function(ctx, misc)
 	local _toggleInputConn = nil
 	local _forcedMouseLock = false
 	local _mouseBehaviorBeforeForce = nil
+	local _mouseIconBeforeForce = nil
 	local _toggleAimOn = false
 	local _restartQueued = false
 
@@ -313,11 +314,16 @@ return function(ctx, misc)
 						else
 							_mouseBehaviorBeforeForce = nil
 						end
+						if _mouseIconBeforeForce == nil and UIS.MouseIconEnabled ~= nil then
+							_mouseIconBeforeForce = UIS.MouseIconEnabled
+						end
 					end
 
 					if lockMode == 1 then
-						if UIS.MouseBehavior ~= Enum.MouseBehavior.LockCenter then
-							UIS.MouseBehavior = Enum.MouseBehavior.LockCenter
+						-- Shift-lock style: force lock every frame while trigger is active.
+						UIS.MouseBehavior = Enum.MouseBehavior.LockCenter
+						if UIS.MouseIconEnabled ~= nil then
+							UIS.MouseIconEnabled = false
 						end
 					else
 						if _mouseBehaviorBeforeForce and UIS.MouseBehavior == Enum.MouseBehavior.LockCenter then
@@ -331,8 +337,12 @@ return function(ctx, misc)
 						if _mouseBehaviorBeforeForce and UIS.MouseBehavior == Enum.MouseBehavior.LockCenter then
 							UIS.MouseBehavior = _mouseBehaviorBeforeForce
 						end
+						if _mouseIconBeforeForce ~= nil and UIS.MouseIconEnabled ~= nil then
+							UIS.MouseIconEnabled = _mouseIconBeforeForce
+						end
 						_forcedMouseLock = false
 						_mouseBehaviorBeforeForce = nil
+						_mouseIconBeforeForce = nil
 					end
 				end
 
