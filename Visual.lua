@@ -1061,9 +1061,29 @@ return function(ctx, misc)
 
     function M.buildPlayerNameList()
         local list = {}
+        local function trunc(s, maxLen)
+            s = tostring(s or "")
+            maxLen = tonumber(maxLen) or 12
+            local okLen, len = pcall(function() return utf8.len(s) end)
+            if okLen and len and len > maxLen then
+                local okSub, sub = pcall(function() return utf8.sub(s, 1, maxLen) end)
+                if okSub and typeof(sub) == "string" then
+                    return sub .. "..."
+                end
+            end
+            if #s > maxLen then
+                return s:sub(1, maxLen) .. "..."
+            end
+            return s
+        end
+
         for _, plr in ipairs(Players:GetPlayers()) do
             if plr ~= Player then
-                table.insert(list, plr.Name)
+                local dn = nil
+                pcall(function() dn = plr.DisplayName end)
+                local display = trunc(dn or plr.Name, 12)
+                local user = tostring(plr.Name)
+                table.insert(list, display .. " (@" .. user .. ")")
             end
         end
         table.sort(list)

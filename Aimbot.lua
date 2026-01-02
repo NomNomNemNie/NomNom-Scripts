@@ -16,6 +16,7 @@ return function(ctx, misc)
 	local _forcedMouseLock = false
 	local _mouseBehaviorBeforeForce = nil
 	local _toggleAimOn = false
+	local _lockCenterAfter = 0
 	local _restartQueued = false
 
 	local function showRobloxNotification(title, text)
@@ -98,7 +99,7 @@ return function(ctx, misc)
 		Aimbot_Settings.WallCheck = false
 		Aimbot_Settings.AliveCheck = (State.AimbotAliveCheck ~= false)
 		Aimbot_Settings.TeamCheck = (State.AimbotTeamCheck ~= false)
-		Aimbot_Settings.Toggle = State.AimbotToggle or false
+		Aimbot_Settings.Toggle = State.AimbotToggleMode or false
 		Aimbot_Settings.OffsetToMoveDirection = State.AimbotOffsetToMoveDirection or false
 		Aimbot_Settings.OffsetIncrement = State.AimbotOffsetIncrement or 10
 		Aimbot_Settings.Sensitivity = State.AimbotSensitivity or 0
@@ -239,7 +240,7 @@ return function(ctx, misc)
 			_toggleInputConn = UIS.InputBegan:Connect(function(input, gameProcessed)
 				if gameProcessed then return end
 				if State.AimbotEnabled ~= true then return end
-				if State.AimbotToggle ~= true then return end
+				if State.AimbotToggleMode ~= true then return end
 
 				local key = _normalizeTriggerKey(State.AimbotTriggerKey)
 				if typeof(key) ~= "EnumItem" then return end
@@ -273,11 +274,11 @@ return function(ctx, misc)
 				local targetPlr = nil
 				local wantLock = false
 				if State.AimbotEnabled == true and useCFrame then
-					if State.AimbotToggle == true then
-						wantLock = (_toggleAimOn == true)
-						if wantLock then
+					if State.AimbotToggleMode == true then
+						if _toggleAimOn == true then
 							targetPlr = _getClosestTargetInFov()
 							aiming = (targetPlr ~= nil)
+							wantLock = aiming
 						end
 					else
 						if down then
@@ -291,6 +292,7 @@ return function(ctx, misc)
 				if wantLock then
 					if not _forcedMouseLock then
 						_forcedMouseLock = true
+						_lockCenterAfter = os.clock() + 0.2
 						if UIS.MouseBehavior ~= Enum.MouseBehavior.LockCenter then
 							_mouseBehaviorBeforeForce = UIS.MouseBehavior
 						else
@@ -299,8 +301,10 @@ return function(ctx, misc)
 					end
 
 					if lockMode == 1 then
-						if UIS.MouseBehavior ~= Enum.MouseBehavior.LockCenter then
-							UIS.MouseBehavior = Enum.MouseBehavior.LockCenter
+						if os.clock() >= (_lockCenterAfter or 0) then
+							if UIS.MouseBehavior ~= Enum.MouseBehavior.LockCenter then
+								UIS.MouseBehavior = Enum.MouseBehavior.LockCenter
+							end
 						end
 					else
 						if _mouseBehaviorBeforeForce and UIS.MouseBehavior == Enum.MouseBehavior.LockCenter then
@@ -326,6 +330,7 @@ return function(ctx, misc)
 						end
 						_forcedMouseLock = false
 						_mouseBehaviorBeforeForce = nil
+						_lockCenterAfter = 0
 					end
 				end
 			end)
@@ -359,8 +364,8 @@ return function(ctx, misc)
 	end
 
 	function M.setToggle(on)
-		State.AimbotToggle = (on == true)
-		if Aimbot_Settings then Aimbot_Settings.Toggle = State.AimbotToggle end
+		State.AimbotToggleMode = (on == true)
+		if Aimbot_Settings then Aimbot_Settings.Toggle = State.AimbotToggleMode end
 	end
 
 	function M.setOffsetToMoveDirection(on)

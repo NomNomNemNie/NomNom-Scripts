@@ -39,7 +39,16 @@ return function(ctx)
                 if typeof(cfg.FreecamKeyName) == "string" and Enum.KeyCode[cfg.FreecamKeyName] then State.FreecamKey = Enum.KeyCode[cfg.FreecamKeyName] end
                 if typeof(cfg.OrbitKeyName) == "string" and Enum.KeyCode[cfg.OrbitKeyName] then State.OrbitKey = Enum.KeyCode[cfg.OrbitKeyName] end
                 if typeof(cfg.AimbotKeyName) == "string" and Enum.KeyCode[cfg.AimbotKeyName] then State.AimbotKey = Enum.KeyCode[cfg.AimbotKeyName] end
-                if typeof(cfg.AimbotTriggerKeyName) == "string" and Enum.KeyCode[cfg.AimbotTriggerKeyName] then State.AimbotTriggerKey = Enum.KeyCode[cfg.AimbotTriggerKeyName] end
+                if typeof(cfg.AimbotTriggerKeyName) == "string" then
+                    if Enum.KeyCode[cfg.AimbotTriggerKeyName] then
+                        State.AimbotTriggerKey = Enum.KeyCode[cfg.AimbotTriggerKeyName]
+                    elseif Enum.UserInputType[cfg.AimbotTriggerKeyName] then
+                        local uit = Enum.UserInputType[cfg.AimbotTriggerKeyName]
+                        if uit == Enum.UserInputType.MouseButton1 or uit == Enum.UserInputType.MouseButton2 or uit == Enum.UserInputType.MouseButton3 then
+                            State.AimbotTriggerKey = uit
+                        end
+                    end
+                end
 
                 if typeof(cfg.CurrentScale) == "number" then State.CurrentScale = cfg.CurrentScale end
                 if typeof(cfg.LastPosX) == "number" and typeof(cfg.LastPosY) == "number" then State.LastPos = UDim2.fromOffset(cfg.LastPosX, cfg.LastPosY) end
@@ -240,11 +249,39 @@ return function(ctx)
 
     local _keybindActionForKey = {}
     local function _normalizeKeyCode(v)
-        if typeof(v) == "EnumItem" and v.EnumType == Enum.KeyCode then
-            return v
+        if typeof(v) == "EnumItem" then
+            if v.EnumType == Enum.KeyCode then
+                return v
+            end
+            if v.EnumType == Enum.UserInputType then
+                if v == Enum.UserInputType.MouseButton1 or v == Enum.UserInputType.MouseButton2 or v == Enum.UserInputType.MouseButton3 then
+                    return v
+                end
+            end
         end
-        if typeof(v) == "string" and Enum.KeyCode[v] then
-            return Enum.KeyCode[v]
+        if typeof(v) == "string" and v ~= "" then
+            local s = tostring(v)
+            if Enum.KeyCode[s] then
+                return Enum.KeyCode[s]
+            end
+            if s == "MB1" or s == "MouseButton1" then return Enum.UserInputType.MouseButton1 end
+            if s == "MB2" or s == "MouseButton2" then return Enum.UserInputType.MouseButton2 end
+            if s == "MB3" or s == "MouseButton3" then return Enum.UserInputType.MouseButton3 end
+            local uit = Enum.UserInputType[s]
+            if uit and (uit == Enum.UserInputType.MouseButton1 or uit == Enum.UserInputType.MouseButton2 or uit == Enum.UserInputType.MouseButton3) then
+                return uit
+            end
+        end
+        return nil
+    end
+
+    local function _keybindId(k)
+        if typeof(k) ~= "EnumItem" then return nil end
+        if k.EnumType == Enum.KeyCode then
+            return "KC:" .. k.Name
+        end
+        if k.EnumType == Enum.UserInputType then
+            return "UIT:" .. k.Name
         end
         return nil
     end
@@ -258,9 +295,10 @@ return function(ctx)
             newKey = Enum.KeyCode.Unknown
         end
 
-        if oldKey and oldKey.EnumType == Enum.KeyCode and oldKey ~= Enum.KeyCode.Unknown then
-            if _keybindActionForKey[oldKey.Name] == actionName then
-                _keybindActionForKey[oldKey.Name] = nil
+        local oldKeyId = _keybindId(oldKey)
+        if oldKeyId and oldKey ~= Enum.KeyCode.Unknown then
+            if _keybindActionForKey[oldKeyId] == actionName then
+                _keybindActionForKey[oldKeyId] = nil
             end
         end
 
@@ -269,21 +307,24 @@ return function(ctx)
             return
         end
 
-        local existingAction = _keybindActionForKey[newKey.Name]
+        local newKeyId = _keybindId(newKey)
+        if not newKeyId then return end
+
+        local existingAction = _keybindActionForKey[newKeyId]
         if existingAction and existingAction ~= actionName then
             showRobloxNotification("Keybind", "Key already used")
-            local revert = (oldKey and oldKey.EnumType == Enum.KeyCode) and oldKey.Name or "Unknown"
+            local revert = (oldKey and typeof(oldKey) == "EnumItem") and oldKey.Name or "Unknown"
             pcall(function() setFluentOptionValue(optionKey, revert) end)
-            if oldKey and oldKey.EnumType == Enum.KeyCode then
+            if oldKey and typeof(oldKey) == "EnumItem" then
                 setKeyFn(oldKey)
             end
-            if oldKey and oldKey.EnumType == Enum.KeyCode and oldKey ~= Enum.KeyCode.Unknown then
-                _keybindActionForKey[oldKey.Name] = actionName
+            if oldKeyId and oldKey ~= Enum.KeyCode.Unknown then
+                _keybindActionForKey[oldKeyId] = actionName
             end
             return
         end
 
-        _keybindActionForKey[newKey.Name] = actionName
+        _keybindActionForKey[newKeyId] = actionName
         setKeyFn(newKey)
     end
     M.setKeybindUnique = setKeybindUnique
@@ -379,10 +420,21 @@ return function(ctx)
     end
     M.getLocalHRP = getLocalHRP
 
-    local function getPlayerByName(name)
+    local function _extractUsernameFromPlayerEntry(name)
         if typeof(name) ~= "string" then return nil end
+        local s = tostring(name)
+        local extracted = s:match("%(@([^%)]+)%)%s*$")
+        if typeof(extracted) == "string" and extracted ~= "" then
+            return extracted
+        end
+        return s
+    end
+
+    local function getPlayerByName(name)
+        local uname = _extractUsernameFromPlayerEntry(name)
+        if typeof(uname) ~= "string" or uname == "" then return nil end
         for _, plr in ipairs(Players:GetPlayers()) do
-            if plr.Name == name then
+            if plr.Name == uname then
                 return plr
             end
         end
