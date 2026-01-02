@@ -12,6 +12,10 @@ return function(ctx, misc)
 	local _loadedOnce = false
 	local _aimAssistConn = nil
 	local _prevMouseBehavior = nil
+	local _toggleInputConn = nil
+	local _forcedMouseLock = false
+	local _mouseBehaviorBeforeForce = nil
+	local _toggleAimOn = false
 	local _restartQueued = false
 
 	local function showRobloxNotification(title, text)
@@ -226,7 +230,31 @@ return function(ctx, misc)
 			if typeof(UIS) ~= "Instance" or typeof(RunService) ~= "Instance" or typeof(Players) ~= "Instance" then return end
 
 			if _aimAssistConn then _aimAssistConn:Disconnect() end
+			if _toggleInputConn then _toggleInputConn:Disconnect() end
+			_forcedMouseLock = false
+			_mouseBehaviorBeforeForce = nil
+			_toggleAimOn = false
 			_prevMouseBehavior = UIS.MouseBehavior
+
+			_toggleInputConn = UIS.InputBegan:Connect(function(input, gameProcessed)
+				if gameProcessed then return end
+				if State.AimbotEnabled ~= true then return end
+				if State.AimbotToggle ~= true then return end
+
+				local key = _normalizeTriggerKey(State.AimbotTriggerKey)
+				if typeof(key) ~= "EnumItem" then return end
+
+				if key.EnumType == Enum.UserInputType then
+					if input.UserInputType ~= key then return end
+				elseif key.EnumType == Enum.KeyCode then
+					if input.KeyCode ~= key then return end
+				else
+					return
+				end
+
+				_toggleAimOn = not _toggleAimOn
+			end)
+
 			_aimAssistConn = RunService.RenderStepped:Connect(function()
 				local key = _normalizeTriggerKey(State.AimbotTriggerKey)
 				local down = false
@@ -238,19 +266,49 @@ return function(ctx, misc)
 					end
 				end
 
+				local lockMode = _normalizeLockMode(State.AimbotLockMode)
+				local useCFrame = (lockMode == 1) or (State.AimbotUseCFrame == true)
+
 				local aiming = false
 				local targetPlr = nil
-				if State.AimbotEnabled == true and down then
-					targetPlr = _getClosestTargetInFov()
-					aiming = (targetPlr ~= nil)
+				local wantLock = false
+				if State.AimbotEnabled == true and useCFrame then
+					if State.AimbotToggle == true then
+						wantLock = (_toggleAimOn == true)
+						if wantLock then
+							targetPlr = _getClosestTargetInFov()
+							aiming = (targetPlr ~= nil)
+						end
+					else
+						if down then
+							targetPlr = _getClosestTargetInFov()
+							aiming = (targetPlr ~= nil)
+							wantLock = aiming
+						end
+					end
 				end
 
-				if aiming then
-					if UIS.MouseBehavior ~= Enum.MouseBehavior.LockCenter then
-						_prevMouseBehavior = _prevMouseBehavior or UIS.MouseBehavior
-						UIS.MouseBehavior = Enum.MouseBehavior.LockCenter
+				if wantLock then
+					if not _forcedMouseLock then
+						_forcedMouseLock = true
+						if UIS.MouseBehavior ~= Enum.MouseBehavior.LockCenter then
+							_mouseBehaviorBeforeForce = UIS.MouseBehavior
+						else
+							_mouseBehaviorBeforeForce = nil
+						end
 					end
-					if State.AimbotLockOn == true and targetPlr then
+
+					if lockMode == 1 then
+						if UIS.MouseBehavior ~= Enum.MouseBehavior.LockCenter then
+							UIS.MouseBehavior = Enum.MouseBehavior.LockCenter
+						end
+					else
+						if _mouseBehaviorBeforeForce and UIS.MouseBehavior == Enum.MouseBehavior.LockCenter then
+							UIS.MouseBehavior = _mouseBehaviorBeforeForce
+						end
+					end
+
+					if aiming and State.AimbotLockOn == true and targetPlr then
 						local char = Players.LocalPlayer and Players.LocalPlayer.Character
 						local hrp = char and char:FindFirstChild("HumanoidRootPart")
 						local tchar = targetPlr.Character
@@ -262,8 +320,12 @@ return function(ctx, misc)
 						end
 					end
 				else
-					if UIS.MouseBehavior == Enum.MouseBehavior.LockCenter and _prevMouseBehavior then
-						UIS.MouseBehavior = _prevMouseBehavior
+					if _forcedMouseLock then
+						if _mouseBehaviorBeforeForce and UIS.MouseBehavior == Enum.MouseBehavior.LockCenter then
+							UIS.MouseBehavior = _mouseBehaviorBeforeForce
+						end
+						_forcedMouseLock = false
+						_mouseBehaviorBeforeForce = nil
 					end
 				end
 			end)
@@ -462,9 +524,16 @@ return function(ctx, misc)
 			local UIS = Services and Services.UIS
 			if _aimAssistConn then _aimAssistConn:Disconnect() end
 			_aimAssistConn = nil
-			if UIS and _prevMouseBehavior then
-				UIS.MouseBehavior = _prevMouseBehavior
+			if _toggleInputConn then _toggleInputConn:Disconnect() end
+			_toggleInputConn = nil
+			if UIS and _forcedMouseLock then
+				if _mouseBehaviorBeforeForce and UIS.MouseBehavior == Enum.MouseBehavior.LockCenter then
+					UIS.MouseBehavior = _mouseBehaviorBeforeForce
+				end
 			end
+			_forcedMouseLock = false
+			_mouseBehaviorBeforeForce = nil
+			_toggleAimOn = false
 		end)
 		Aimbot = nil
 		Aimbot_Settings = nil
