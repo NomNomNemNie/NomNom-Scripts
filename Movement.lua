@@ -358,7 +358,10 @@ return function(ctx, misc)
             local hrp = getLocalHRP()
             if not hum or not hrp then return end
 
-            local base = tonumber(State.BaseWalkSpeed) or 16
+            local base = tonumber(State.BaseWalkSpeed)
+            if not base or base <= 0 then
+                base = tonumber(hum.WalkSpeed) or 16
+            end
             local mult = tonumber(State.DesiredWalkSpeed) or 1
             local desired = base * mult
             local extra = math.max(0, desired - base)
@@ -399,7 +402,10 @@ return function(ctx, misc)
         loopJumpPowerConn = RunService.Heartbeat:Connect(function()
             local hum = getLocalHumanoid()
             if State.ApplyMovementStats and State.ApplyJumpPower and hum then
-                local base = tonumber(State.BaseJumpPower) or 50
+                local base = tonumber(State.BaseJumpPower)
+                if not base or base <= 0 then
+                    base = tonumber(hum.JumpPower) or 50
+                end
                 local mult = tonumber(State.DesiredJumpPower) or 1
                 pcall(function() hum.JumpPower = base * mult end)
             end
@@ -408,6 +414,13 @@ return function(ctx, misc)
 
     function M.startLoops()
         task.defer(function()
+            pcall(function()
+                local hum = getLocalHumanoid()
+                if hum then
+                    State.BaseWalkSpeed = tonumber(hum.WalkSpeed) or State.BaseWalkSpeed
+                    State.BaseJumpPower = tonumber(hum.JumpPower) or State.BaseJumpPower
+                end
+            end)
             pcall(startCframeWalk)
             pcall(startLoopJumpPower)
         end)
