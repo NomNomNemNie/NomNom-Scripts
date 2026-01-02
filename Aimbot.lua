@@ -121,7 +121,7 @@ return function(ctx, misc)
 
 		if Aimbot_FOV then
 			if Aimbot_FOV.Enabled ~= nil then
-				Aimbot_FOV.Enabled = (State.AimbotFOVEnabled == true)
+				Aimbot_FOV.Enabled = true
 			end
 			Aimbot_FOV.Visible = (State.AimbotFOVVisible ~= false)
 			Aimbot_FOV.Radius = State.AimbotFOVRadius or 100
@@ -155,10 +155,8 @@ return function(ctx, misc)
 	local function _getClosestTargetInFov()
 		local Players = Services and Services.Players
 		if typeof(Players) ~= "Instance" then return nil end
-		if typeof(Players.GetPlayers) ~= "function" then return nil end
 		local cam = workspace and workspace.CurrentCamera
 		if typeof(cam) ~= "Instance" then return nil end
-		if typeof(cam.WorldToViewportPoint) ~= "function" then return nil end
 		local localPlayer = Players.LocalPlayer
 		if typeof(localPlayer) ~= "Instance" then return nil end
 
@@ -456,9 +454,9 @@ return function(ctx, misc)
 	end
 
 	function M.setFOVEnabled(on)
-		State.AimbotFOVEnabled = (on == true)
+		State.AimbotFOVEnabled = true
 		if Aimbot_FOV and Aimbot_FOV.Enabled ~= nil then
-			Aimbot_FOV.Enabled = State.AimbotFOVEnabled
+			Aimbot_FOV.Enabled = true
 		end
 	end
 
