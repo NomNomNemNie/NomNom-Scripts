@@ -303,7 +303,8 @@ return function(ctx, misc)
 				if triggerActive then
 					targetPlr = _getClosestTargetInFov()
 					aiming = (targetPlr ~= nil)
-					wantLock = false
+					-- In CFrame mode we want shift-lock style mouse lock while trigger is active.
+					wantLock = (lockMode == 1 and useCFrame)
 				end
 
 				if wantLock then
