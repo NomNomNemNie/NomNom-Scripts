@@ -251,6 +251,9 @@ return function(ctx)
     local function _normalizeKeyCode(v)
         if typeof(v) == "EnumItem" then
             if v.EnumType == Enum.KeyCode then
+                if v == Enum.KeyCode.MouseButton1 then return Enum.UserInputType.MouseButton1 end
+                if v == Enum.KeyCode.MouseButton2 then return Enum.UserInputType.MouseButton2 end
+                if v == Enum.KeyCode.MouseButton3 then return Enum.UserInputType.MouseButton3 end
                 return v
             end
             if v.EnumType == Enum.UserInputType then

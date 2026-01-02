@@ -75,7 +75,13 @@ return function(ctx, misc)
 	local function _normalizeTriggerKey(v)
 		-- Exunys Aimbot-V3 expects an EnumItem (KeyCode or UserInputType)
 		if typeof(v) == "EnumItem" then
-			if v.EnumType == Enum.KeyCode or v.EnumType == Enum.UserInputType then
+			if v.EnumType == Enum.KeyCode then
+				if v == Enum.KeyCode.MouseButton1 then return Enum.UserInputType.MouseButton1 end
+				if v == Enum.KeyCode.MouseButton2 then return Enum.UserInputType.MouseButton2 end
+				if v == Enum.KeyCode.MouseButton3 then return Enum.UserInputType.MouseButton3 end
+				return v
+			end
+			if v.EnumType == Enum.UserInputType then
 				return v
 			end
 		end
@@ -290,30 +296,19 @@ return function(ctx, misc)
 				if triggerActive then
 					targetPlr = _getClosestTargetInFov()
 					aiming = (targetPlr ~= nil)
-					wantLock = (aiming and lockMode == 1 and useCFrame)
 				end
+
+				local shouldAim = (triggerActive and aiming)
+				wantLock = (shouldAim and lockMode == 1 and useCFrame)
 
 				if wantLock then
 					if not _forcedMouseLock then
 						_forcedMouseLock = true
-						if UIS.MouseBehavior ~= Enum.MouseBehavior.LockCenter then
-							_mouseBehaviorBeforeForce = UIS.MouseBehavior
-						else
-							_mouseBehaviorBeforeForce = nil
-						end
+						_mouseBehaviorBeforeForce = UIS.MouseBehavior
 					end
-
-					if lockMode == 1 then
-						if UIS.MouseBehavior ~= Enum.MouseBehavior.LockCenter then
-							UIS.MouseBehavior = Enum.MouseBehavior.LockCenter
-						end
-					else
-						if _mouseBehaviorBeforeForce and UIS.MouseBehavior == Enum.MouseBehavior.LockCenter then
-							UIS.MouseBehavior = _mouseBehaviorBeforeForce
-						end
+					if UIS.MouseBehavior ~= Enum.MouseBehavior.LockCenter then
+						UIS.MouseBehavior = Enum.MouseBehavior.LockCenter
 					end
-
-					-- LockOn rotation handled above for both CFrame and mousemover modes.
 				else
 					if _forcedMouseLock then
 						if _mouseBehaviorBeforeForce and UIS.MouseBehavior == Enum.MouseBehavior.LockCenter then
@@ -324,8 +319,8 @@ return function(ctx, misc)
 					end
 				end
 
-				-- In CFrame mode: lock mouse first, then rotate character to face target (lockcam).
-				if triggerActive and aiming and State.AimbotLockOn == true and targetPlr then
+				-- Keep character facing the same target while aiming.
+				if shouldAim and State.AimbotLockOn == true and targetPlr then
 					local char = Players.LocalPlayer and Players.LocalPlayer.Character
 					local hrp = char and char:FindFirstChild("HumanoidRootPart")
 					local tchar = targetPlr.Character
