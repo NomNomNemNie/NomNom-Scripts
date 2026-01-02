@@ -250,7 +250,6 @@ return function(ctx, misc)
 			_prevMouseBehavior = UIS.MouseBehavior
 
 			_toggleInputConn = UIS.InputBegan:Connect(function(input, gameProcessed)
-				if gameProcessed then return end
 				if State.AimbotEnabled ~= true then return end
 				if State.AimbotToggleMode ~= true then return end
 
