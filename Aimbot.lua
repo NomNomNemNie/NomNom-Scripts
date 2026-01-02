@@ -16,6 +16,7 @@ return function(ctx, misc)
 	local _forcedMouseLock = false
 	local _mouseBehaviorBeforeForce = nil
 	local _toggleAimOn = false
+	local _aimAssistBindName = "NomNom_AimbotAimAssist"
 	local _restartQueued = false
 
 	local function showRobloxNotification(title, text)
@@ -261,7 +262,12 @@ return function(ctx, misc)
 				_toggleAimOn = not _toggleAimOn
 			end)
 
-			_aimAssistConn = RunService.RenderStepped:Connect(function()
+			pcall(function()
+				RunService:UnbindFromRenderStep(_aimAssistBindName)
+			end)
+			_aimAssistConn = nil
+
+			RunService:BindToRenderStep(_aimAssistBindName, Enum.RenderPriority.Camera.Value + 1, function()
 				local key = _normalizeTriggerKey(State.AimbotTriggerKey)
 				local down = false
 				if typeof(key) == "EnumItem" then
@@ -525,8 +531,14 @@ return function(ctx, misc)
 		end
 		pcall(function()
 			local UIS = Services and Services.UIS
+			local RunService = Services and Services.RunService
 			if _aimAssistConn then _aimAssistConn:Disconnect() end
 			_aimAssistConn = nil
+			if RunService then
+				pcall(function()
+					RunService:UnbindFromRenderStep(_aimAssistBindName)
+				end)
+			end
 			if _toggleInputConn then _toggleInputConn:Disconnect() end
 			_toggleInputConn = nil
 			if UIS and _forcedMouseLock then
