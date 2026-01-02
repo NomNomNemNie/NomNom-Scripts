@@ -264,6 +264,10 @@ return function(ctx)
         end
         if typeof(v) == "string" and v ~= "" then
             local s = tostring(v)
+            s = s:gsub("^%s+", ""):gsub("%s+$", "")
+            local tail = s:match("([^.]+)$")
+            if tail and tail ~= "" then s = tail end
+            if #s == 1 then s = s:upper() end
             if s == "RMB" or s == "MouseRight" or s == "RightMouse" or s == "RightMouseButton" then
                 return Enum.UserInputType.MouseButton2
             end
@@ -316,11 +320,6 @@ return function(ctx)
 
 		if actionName == "AimbotTrigger" then
 			setKeyFn(newKey)
-			pcall(function()
-				local et = (typeof(newKey) == "EnumItem" and newKey.EnumType and newKey.EnumType.Name) or "?"
-				local nm = (typeof(newKey) == "EnumItem" and newKey.Name) or tostring(newKey)
-				showRobloxNotification("Aimbot Trigger", tostring(et) .. ":" .. tostring(nm))
-			end)
 			return
 		end
 
