@@ -13,53 +13,10 @@ return function(ctx, misc)
 	local _aimAssistConn = nil
 	local _prevMouseBehavior = nil
 	local _toggleInputConn = nil
-	local _triggerHeld = false
 	local _forcedMouseLock = false
 	local _mouseBehaviorBeforeForce = nil
 	local _toggleAimOn = false
-	local _aimAssistBindName = "NomNom_AimbotAimAssist"
-	local _triggerActionName = "NomNom_AimbotTrigger"
-	local _boundTriggerKey = nil
 	local _restartQueued = false
-	local _normalizeTriggerKey
-
-	local function _bindTriggerAction()
-		local CAS = Services and Services.CAS
-		if typeof(CAS) ~= "Instance" then return end
-
-		pcall(function()
-			CAS:UnbindAction(_triggerActionName)
-		end)
-
-		local key = _normalizeTriggerKey(State.AimbotTriggerKey)
-		_boundTriggerKey = key
-		if typeof(key) ~= "EnumItem" then return end
-
-		local function handler(_, inputState)
-			if State.AimbotEnabled ~= true then
-				_triggerHeld = false
-				return Enum.ContextActionResult.Pass
-			end
-
-			if State.AimbotToggleMode == true then
-				if inputState == Enum.UserInputState.Begin then
-					_toggleAimOn = not _toggleAimOn
-				end
-			else
-				if inputState == Enum.UserInputState.Begin then
-					_triggerHeld = true
-				elseif inputState == Enum.UserInputState.End then
-					_triggerHeld = false
-				end
-			end
-
-			return Enum.ContextActionResult.Sink
-		end
-
-		pcall(function()
-			CAS:BindActionAtPriority(_triggerActionName, handler, false, Enum.ContextActionPriority.High.Value, key)
-		end)
-	end
 
 	local function showRobloxNotification(title, text)
 		return misc.showRobloxNotification(title, text)
@@ -115,35 +72,22 @@ return function(ctx, misc)
 		return 1
 	end
 
-	_normalizeTriggerKey = function(v)
+	local function _normalizeTriggerKey(v)
 		-- Exunys Aimbot-V3 expects an EnumItem (KeyCode or UserInputType)
 		if typeof(v) == "EnumItem" then
-			if v.EnumType == Enum.KeyCode then
-				if v == Enum.KeyCode.MouseButton1 then return Enum.UserInputType.MouseButton1 end
-				if v == Enum.KeyCode.MouseButton2 then return Enum.UserInputType.MouseButton2 end
-				if v == Enum.KeyCode.MouseButton3 then return Enum.UserInputType.MouseButton3 end
-				return v
-			end
-			if v.EnumType == Enum.UserInputType then
+			if v.EnumType == Enum.KeyCode or v.EnumType == Enum.UserInputType then
 				return v
 			end
 		end
 		if typeof(v) == "string" and v ~= "" then
 			local s = tostring(v)
-			s = s:gsub("^%s+", ""):gsub("%s+$", "")
-			local tail = s:match("([^.]+)$")
-			if tail and tail ~= "" then s = tail end
-			if #s == 1 then s = s:upper() end
-			if s == "RMB" or s == "MouseRight" or s == "RightMouse" or s == "RightMouseButton" then return Enum.UserInputType.MouseButton2 end
-			if s == "LMB" or s == "MouseLeft" or s == "LeftMouse" or s == "LeftMouseButton" then return Enum.UserInputType.MouseButton1 end
-			if s == "MMB" or s == "MouseMiddle" or s == "MiddleMouse" or s == "MiddleMouseButton" then return Enum.UserInputType.MouseButton3 end
 			if s == "MB1" or s == "MouseButton1" then return Enum.UserInputType.MouseButton1 end
 			if s == "MB2" or s == "MouseButton2" then return Enum.UserInputType.MouseButton2 end
 			if s == "MB3" or s == "MouseButton3" then return Enum.UserInputType.MouseButton3 end
 			local kc = Enum.KeyCode[s]
 			if kc then return kc end
 		end
-		return Enum.KeyCode.Unknown
+		return Enum.UserInputType.MouseButton2
 	end
 
 	local function applySettings()
@@ -283,34 +227,43 @@ return function(ctx, misc)
 			local UIS = Services and Services.UIS
 			local RunService = Services and Services.RunService
 			local Players = Services and Services.Players
-			local CAS = Services and Services.CAS
 			if typeof(UIS) ~= "Instance" or typeof(RunService) ~= "Instance" or typeof(Players) ~= "Instance" then return end
 
 			if _aimAssistConn then _aimAssistConn:Disconnect() end
 			if _toggleInputConn then _toggleInputConn:Disconnect() end
-			if typeof(CAS) == "Instance" then
-				pcall(function()
-					CAS:UnbindAction(_triggerActionName)
-				end)
-			end
 			_forcedMouseLock = false
 			_mouseBehaviorBeforeForce = nil
 			_toggleAimOn = false
-			_triggerHeld = false
 			_prevMouseBehavior = UIS.MouseBehavior
 
-			_toggleInputConn = nil
-			_bindTriggerAction()
+			_toggleInputConn = UIS.InputBegan:Connect(function(input, gameProcessed)
+				if gameProcessed then return end
+				if State.AimbotEnabled ~= true then return end
+				if State.AimbotToggleMode ~= true then return end
 
-			pcall(function()
-				RunService:UnbindFromRenderStep(_aimAssistBindName)
+				local key = _normalizeTriggerKey(State.AimbotTriggerKey)
+				if typeof(key) ~= "EnumItem" then return end
+
+				if key.EnumType == Enum.UserInputType then
+					if input.UserInputType ~= key then return end
+				elseif key.EnumType == Enum.KeyCode then
+					if input.KeyCode ~= key then return end
+				else
+					return
+				end
+
+				_toggleAimOn = not _toggleAimOn
 			end)
-			_aimAssistConn = nil
 
-			RunService:BindToRenderStep(_aimAssistBindName, Enum.RenderPriority.Camera.Value + 1, function()
-				local currentKey = _normalizeTriggerKey(State.AimbotTriggerKey)
-				if _boundTriggerKey ~= currentKey then
-					_bindTriggerAction()
+			_aimAssistConn = RunService.RenderStepped:Connect(function()
+				local key = _normalizeTriggerKey(State.AimbotTriggerKey)
+				local down = false
+				if typeof(key) == "EnumItem" then
+					if key.EnumType == Enum.UserInputType then
+						down = UIS:IsMouseButtonPressed(key)
+					elseif key.EnumType == Enum.KeyCode then
+						down = UIS:IsKeyDown(key)
+					end
 				end
 
 				local rawLockMode = State.AimbotLockMode
@@ -330,26 +283,37 @@ return function(ctx, misc)
 					if State.AimbotToggleMode == true then
 						triggerActive = (_toggleAimOn == true)
 					else
-						triggerActive = (_triggerHeld == true)
+						triggerActive = (down == true)
 					end
 				end
 
 				if triggerActive then
 					targetPlr = _getClosestTargetInFov()
 					aiming = (targetPlr ~= nil)
+					wantLock = (aiming and lockMode == 1 and useCFrame)
 				end
-
-				local shouldAim = (triggerActive and aiming)
-				wantLock = (shouldAim and lockMode == 1 and useCFrame)
 
 				if wantLock then
 					if not _forcedMouseLock then
 						_forcedMouseLock = true
-						_mouseBehaviorBeforeForce = UIS.MouseBehavior
+						if UIS.MouseBehavior ~= Enum.MouseBehavior.LockCenter then
+							_mouseBehaviorBeforeForce = UIS.MouseBehavior
+						else
+							_mouseBehaviorBeforeForce = nil
+						end
 					end
-					if UIS.MouseBehavior ~= Enum.MouseBehavior.LockCenter then
-						UIS.MouseBehavior = Enum.MouseBehavior.LockCenter
+
+					if lockMode == 1 then
+						if UIS.MouseBehavior ~= Enum.MouseBehavior.LockCenter then
+							UIS.MouseBehavior = Enum.MouseBehavior.LockCenter
+						end
+					else
+						if _mouseBehaviorBeforeForce and UIS.MouseBehavior == Enum.MouseBehavior.LockCenter then
+							UIS.MouseBehavior = _mouseBehaviorBeforeForce
+						end
 					end
+
+					-- LockOn rotation handled above for both CFrame and mousemover modes.
 				else
 					if _forcedMouseLock then
 						if _mouseBehaviorBeforeForce and UIS.MouseBehavior == Enum.MouseBehavior.LockCenter then
@@ -360,8 +324,8 @@ return function(ctx, misc)
 					end
 				end
 
-				-- Keep character facing the same target while aiming (CFrame mode only, synchronized with wantLock).
-				if wantLock and State.AimbotLockOn == true and targetPlr then
+				-- In CFrame mode: lock mouse first, then rotate character to face target (lockcam).
+				if triggerActive and aiming and State.AimbotLockOn == true and targetPlr then
 					local char = Players.LocalPlayer and Players.LocalPlayer.Character
 					local hrp = char and char:FindFirstChild("HumanoidRootPart")
 					local tchar = targetPlr.Character
@@ -454,7 +418,6 @@ return function(ctx, misc)
 	function M.setTriggerKey(key)
 		State.AimbotTriggerKey = key
 		if Aimbot_Settings then Aimbot_Settings.TriggerKey = _normalizeTriggerKey(State.AimbotTriggerKey) end
-		pcall(_bindTriggerAction)
 	end
 
 	function M.setUpdateMode(mode)
@@ -567,20 +530,8 @@ return function(ctx, misc)
 		end
 		pcall(function()
 			local UIS = Services and Services.UIS
-			local RunService = Services and Services.RunService
-			local CAS = Services and Services.CAS
 			if _aimAssistConn then _aimAssistConn:Disconnect() end
 			_aimAssistConn = nil
-			if RunService then
-				pcall(function()
-					RunService:UnbindFromRenderStep(_aimAssistBindName)
-				end)
-			end
-			if typeof(CAS) == "Instance" then
-				pcall(function()
-					CAS:UnbindAction(_triggerActionName)
-				end)
-			end
 			if _toggleInputConn then _toggleInputConn:Disconnect() end
 			_toggleInputConn = nil
 			if UIS and _forcedMouseLock then
