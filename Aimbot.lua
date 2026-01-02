@@ -16,7 +16,6 @@ return function(ctx, misc)
 	local _forcedMouseLock = false
 	local _mouseBehaviorBeforeForce = nil
 	local _toggleAimOn = false
-	local _lockCenterAfter = 0
 	local _restartQueued = false
 
 	local function showRobloxNotification(title, text)
@@ -267,32 +266,48 @@ return function(ctx, misc)
 					end
 				end
 
-				local lockMode = _normalizeLockMode(State.AimbotLockMode)
-				local useCFrame = (lockMode == 1) or (State.AimbotUseCFrame == true)
+				local rawLockMode = State.AimbotLockMode
+				local lockMode = _normalizeLockMode(rawLockMode)
+				local useCFrame = false
+				if rawLockMode ~= nil then
+					useCFrame = (lockMode == 1)
+				else
+					useCFrame = (State.AimbotUseCFrame == true)
+				end
 
 				local aiming = false
 				local targetPlr = nil
 				local wantLock = false
-				if State.AimbotEnabled == true and useCFrame then
+				local triggerActive = false
+				if State.AimbotEnabled == true then
 					if State.AimbotToggleMode == true then
-						if _toggleAimOn == true then
-							targetPlr = _getClosestTargetInFov()
-							aiming = (targetPlr ~= nil)
-							wantLock = aiming
-						end
+						triggerActive = (_toggleAimOn == true)
 					else
-						if down then
-							targetPlr = _getClosestTargetInFov()
-							aiming = (targetPlr ~= nil)
-							wantLock = aiming
-						end
+						triggerActive = (down == true)
+					end
+				end
+
+				if triggerActive then
+					targetPlr = _getClosestTargetInFov()
+					aiming = (targetPlr ~= nil)
+					wantLock = (aiming and lockMode == 1 and useCFrame)
+				end
+
+				if triggerActive and aiming and State.AimbotLockOn == true and targetPlr then
+					local char = Players.LocalPlayer and Players.LocalPlayer.Character
+					local hrp = char and char:FindFirstChild("HumanoidRootPart")
+					local tchar = targetPlr.Character
+					local tpart = tchar and (tchar:FindFirstChild("HumanoidRootPart") or tchar:FindFirstChild("Head"))
+					if hrp and tpart then
+						local pos = hrp.Position
+						local look = Vector3.new(tpart.Position.X, pos.Y, tpart.Position.Z)
+						hrp.CFrame = CFrame.new(pos, look)
 					end
 				end
 
 				if wantLock then
 					if not _forcedMouseLock then
 						_forcedMouseLock = true
-						_lockCenterAfter = os.clock() + 0.2
 						if UIS.MouseBehavior ~= Enum.MouseBehavior.LockCenter then
 							_mouseBehaviorBeforeForce = UIS.MouseBehavior
 						else
@@ -301,10 +316,8 @@ return function(ctx, misc)
 					end
 
 					if lockMode == 1 then
-						if os.clock() >= (_lockCenterAfter or 0) then
-							if UIS.MouseBehavior ~= Enum.MouseBehavior.LockCenter then
-								UIS.MouseBehavior = Enum.MouseBehavior.LockCenter
-							end
+						if UIS.MouseBehavior ~= Enum.MouseBehavior.LockCenter then
+							UIS.MouseBehavior = Enum.MouseBehavior.LockCenter
 						end
 					else
 						if _mouseBehaviorBeforeForce and UIS.MouseBehavior == Enum.MouseBehavior.LockCenter then
@@ -312,17 +325,7 @@ return function(ctx, misc)
 						end
 					end
 
-					if aiming and State.AimbotLockOn == true and targetPlr then
-						local char = Players.LocalPlayer and Players.LocalPlayer.Character
-						local hrp = char and char:FindFirstChild("HumanoidRootPart")
-						local tchar = targetPlr.Character
-						local tpart = tchar and (tchar:FindFirstChild("HumanoidRootPart") or tchar:FindFirstChild("Head"))
-						if hrp and tpart then
-							local pos = hrp.Position
-							local look = Vector3.new(tpart.Position.X, pos.Y, tpart.Position.Z)
-							hrp.CFrame = CFrame.new(pos, look)
-						end
-					end
+					-- LockOn rotation handled above for both CFrame and mousemover modes.
 				else
 					if _forcedMouseLock then
 						if _mouseBehaviorBeforeForce and UIS.MouseBehavior == Enum.MouseBehavior.LockCenter then
@@ -330,7 +333,6 @@ return function(ctx, misc)
 						end
 						_forcedMouseLock = false
 						_mouseBehaviorBeforeForce = nil
-						_lockCenterAfter = 0
 					end
 				end
 			end)
