@@ -13,6 +13,9 @@ return function(ctx, misc)
 	local _aimAssistConn = nil
 	local _prevMouseBehavior = nil
 	local _toggleInputConn = nil
+	local _triggerInputBeganConn = nil
+	local _triggerInputEndedConn = nil
+	local _triggerHeld = false
 	local _forcedMouseLock = false
 	local _mouseBehaviorBeforeForce = nil
 	local _toggleAimOn = false
@@ -241,28 +244,54 @@ return function(ctx, misc)
 
 			if _aimAssistConn then _aimAssistConn:Disconnect() end
 			if _toggleInputConn then _toggleInputConn:Disconnect() end
+			if _triggerInputBeganConn then _triggerInputBeganConn:Disconnect() end
+			if _triggerInputEndedConn then _triggerInputEndedConn:Disconnect() end
 			_forcedMouseLock = false
 			_mouseBehaviorBeforeForce = nil
 			_toggleAimOn = false
+			_triggerHeld = false
 			_prevMouseBehavior = UIS.MouseBehavior
 
-			_toggleInputConn = UIS.InputBegan:Connect(function(input, gameProcessed)
+			_toggleInputConn = nil
+
+			_triggerInputBeganConn = UIS.InputBegan:Connect(function(input, gameProcessed)
 				if gameProcessed then return end
 				if State.AimbotEnabled ~= true then return end
-				if State.AimbotToggleMode ~= true then return end
+				local key = _normalizeTriggerKey(State.AimbotTriggerKey)
+				if typeof(key) ~= "EnumItem" then return end
+
+				local matches = false
+				if key.EnumType == Enum.UserInputType then
+					matches = (input.UserInputType == key)
+				elseif key.EnumType == Enum.KeyCode then
+					matches = (input.KeyCode == key)
+				end
+				if not matches then return end
+
+				if State.AimbotToggleMode == true then
+					_toggleAimOn = not _toggleAimOn
+				else
+					_triggerHeld = true
+				end
+			end)
+
+			_triggerInputEndedConn = UIS.InputEnded:Connect(function(input, gameProcessed)
+				if gameProcessed then return end
+				if State.AimbotEnabled ~= true then return end
+				if State.AimbotToggleMode == true then return end
 
 				local key = _normalizeTriggerKey(State.AimbotTriggerKey)
 				if typeof(key) ~= "EnumItem" then return end
 
+				local matches = false
 				if key.EnumType == Enum.UserInputType then
-					if input.UserInputType ~= key then return end
+					matches = (input.UserInputType == key)
 				elseif key.EnumType == Enum.KeyCode then
-					if input.KeyCode ~= key then return end
-				else
-					return
+					matches = (input.KeyCode == key)
 				end
+				if not matches then return end
 
-				_toggleAimOn = not _toggleAimOn
+				_triggerHeld = false
 			end)
 
 			pcall(function()
@@ -271,15 +300,6 @@ return function(ctx, misc)
 			_aimAssistConn = nil
 
 			RunService:BindToRenderStep(_aimAssistBindName, Enum.RenderPriority.Camera.Value + 1, function()
-				local key = _normalizeTriggerKey(State.AimbotTriggerKey)
-				local down = false
-				if typeof(key) == "EnumItem" then
-					if key.EnumType == Enum.UserInputType then
-						down = UIS:IsMouseButtonPressed(key)
-					elseif key.EnumType == Enum.KeyCode then
-						down = UIS:IsKeyDown(key)
-					end
-				end
 
 				local rawLockMode = State.AimbotLockMode
 				local lockMode = _normalizeLockMode(rawLockMode)
@@ -298,7 +318,7 @@ return function(ctx, misc)
 					if State.AimbotToggleMode == true then
 						triggerActive = (_toggleAimOn == true)
 					else
-						triggerActive = (down == true)
+						triggerActive = (_triggerHeld == true)
 					end
 				end
 
@@ -544,6 +564,10 @@ return function(ctx, misc)
 			end
 			if _toggleInputConn then _toggleInputConn:Disconnect() end
 			_toggleInputConn = nil
+			if _triggerInputBeganConn then _triggerInputBeganConn:Disconnect() end
+			_triggerInputBeganConn = nil
+			if _triggerInputEndedConn then _triggerInputEndedConn:Disconnect() end
+			_triggerInputEndedConn = nil
 			if UIS and _forcedMouseLock then
 				if _mouseBehaviorBeforeForce and UIS.MouseBehavior == Enum.MouseBehavior.LockCenter then
 					UIS.MouseBehavior = _mouseBehaviorBeforeForce
