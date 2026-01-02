@@ -154,18 +154,23 @@ return function(ctx, misc)
 
 	local function _getClosestTargetInFov()
 		local Players = Services and Services.Players
-		if not Players then return nil end
+		if typeof(Players) ~= "Instance" then return nil end
+		if typeof(Players.GetPlayers) ~= "function" then return nil end
 		local cam = workspace and workspace.CurrentCamera
-		if not cam then return nil end
+		if typeof(cam) ~= "Instance" then return nil end
+		if typeof(cam.WorldToViewportPoint) ~= "function" then return nil end
 		local localPlayer = Players.LocalPlayer
-		if not localPlayer then return nil end
+		if typeof(localPlayer) ~= "Instance" then return nil end
 
 		local mousePos = nil
 		pcall(function()
 			local vp = cam.ViewportSize
 			local UIS = Services and Services.UIS
-			if UIS and typeof(UIS.GetMouseLocation) == "function" then
-				mousePos = UIS:GetMouseLocation()
+			if typeof(UIS) == "Instance" and typeof(UIS.GetMouseLocation) == "function" then
+				local ok, p = pcall(function() return UIS:GetMouseLocation() end)
+				if ok and typeof(p) == "Vector2" then
+					mousePos = p
+				end
 			else
 				mousePos = Vector2.new(vp.X * 0.5, vp.Y * 0.5)
 			end
@@ -175,7 +180,10 @@ return function(ctx, misc)
 		local radius = tonumber(State.AimbotFOVRadius) or 120
 		local bestPlr, bestDist = nil, math.huge
 
-		for _, plr in ipairs(Players:GetPlayers()) do
+		local plrs = nil
+		pcall(function() plrs = Players:GetPlayers() end)
+		if typeof(plrs) ~= "table" then return nil end
+		for _, plr in ipairs(plrs) do
 			if plr ~= localPlayer then
 				local char = plr.Character
 				local hum = char and char:FindFirstChildOfClass("Humanoid")
@@ -195,7 +203,10 @@ return function(ctx, misc)
 						local partName = tostring(State.AimbotLockPart or "Head")
 						local part = char:FindFirstChild(partName) or char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
 						if part then
-							local screenPos, onScreen = cam:WorldToViewportPoint(part.Position)
+							local screenPos, onScreen = nil, false
+							pcall(function()
+								screenPos, onScreen = cam:WorldToViewportPoint(part.Position)
+							end)
 							if onScreen and screenPos.Z > 0 then
 								local d = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
 								if d <= radius and d < bestDist then
