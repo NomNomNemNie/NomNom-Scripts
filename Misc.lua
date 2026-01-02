@@ -316,6 +316,11 @@ return function(ctx)
 
 		if actionName == "AimbotTrigger" then
 			setKeyFn(newKey)
+			pcall(function()
+				local et = (typeof(newKey) == "EnumItem" and newKey.EnumType and newKey.EnumType.Name) or "?"
+				local nm = (typeof(newKey) == "EnumItem" and newKey.Name) or tostring(newKey)
+				showRobloxNotification("Aimbot Trigger", tostring(et) .. ":" .. tostring(nm))
+			end)
 			return
 		end
 
