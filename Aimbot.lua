@@ -255,7 +255,7 @@ return function(ctx, misc)
 			_toggleInputConn = nil
 
 			_triggerInputBeganConn = UIS.InputBegan:Connect(function(input, gameProcessed)
-				if gameProcessed then return end
+				if UIS:GetFocusedTextBox() then return end
 				if State.AimbotEnabled ~= true then return end
 				local key = _normalizeTriggerKey(State.AimbotTriggerKey)
 				if typeof(key) ~= "EnumItem" then return end
@@ -276,7 +276,7 @@ return function(ctx, misc)
 			end)
 
 			_triggerInputEndedConn = UIS.InputEnded:Connect(function(input, gameProcessed)
-				if gameProcessed then return end
+				if UIS:GetFocusedTextBox() then return end
 				if State.AimbotEnabled ~= true then return end
 				if State.AimbotToggleMode == true then return end
 
