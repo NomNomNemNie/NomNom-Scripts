@@ -152,49 +152,6 @@ return function(ctx, misc)
 		end
 	end
 
-	local function _nameKey(s)
-		if typeof(s) ~= "string" then return nil end
-		local k = string.lower(tostring(s))
-		if k == "" then return nil end
-		return k
-	end
-
-	local function _isPlayerAllowed(plr)
-		if typeof(plr) ~= "Instance" then return false end
-		local name = _nameKey(plr.Name)
-		if not name then return false end
-		local whitelist = State.AimbotWhitelist
-		local blacklist = State.AimbotBlacklist
-
-		if typeof(blacklist) == "table" then
-			for k, v in pairs(blacklist) do
-				if v == true and _nameKey(k) == name then
-					return false
-				end
-			end
-		end
-
-		if typeof(whitelist) == "table" then
-			local hasAny = false
-			for k, v in pairs(whitelist) do
-				if v == true then
-					hasAny = true
-					break
-				end
-			end
-			if hasAny then
-				for k, v in pairs(whitelist) do
-					if v == true and _nameKey(k) == name then
-						return true
-					end
-				end
-				return false
-			end
-		end
-
-		return true
-	end
-
 	local function _getClosestTargetInFov()
 		local Players = Services and Services.Players
 		if not Players then return nil end
@@ -220,12 +177,6 @@ return function(ctx, misc)
 
 		for _, plr in ipairs(Players:GetPlayers()) do
 			if plr ~= localPlayer then
-				if not _isPlayerAllowed(plr) then
-					continue
-				end
-				if not isValidPlayer(plr) then
-					continue
-				end
 				local char = plr.Character
 				local hum = char and char:FindFirstChildOfClass("Humanoid")
 				if char and hum and hum.Health > 0 then
@@ -320,8 +271,12 @@ return function(ctx, misc)
 
 				local rawLockMode = State.AimbotLockMode
 				local lockMode = _normalizeLockMode(rawLockMode)
-				-- Legacy behavior: allow UseCFrame to force CFrame mode (and thus LockCenter) even if LockMode is inconsistent.
-				local useCFrame = (State.AimbotUseCFrame == true) or (rawLockMode == "CFrame") or (lockMode == 1)
+				local useCFrame = false
+				if rawLockMode ~= nil then
+					useCFrame = (lockMode == 1)
+				else
+					useCFrame = (State.AimbotUseCFrame == true)
+				end
 
 				local aiming = false
 				local targetPlr = nil
@@ -338,7 +293,7 @@ return function(ctx, misc)
 				if triggerActive then
 					targetPlr = _getClosestTargetInFov()
 					aiming = (targetPlr ~= nil)
-					wantLock = (useCFrame == true)
+					wantLock = (aiming and lockMode == 1 and useCFrame)
 				end
 
 				if wantLock then

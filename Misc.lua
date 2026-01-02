@@ -49,46 +49,6 @@ return function(ctx)
                     end
                 end
 
-				if typeof(cfg.AimbotTriggerChoice) == "string" then State.AimbotTriggerChoice = cfg.AimbotTriggerChoice end
-				if typeof(cfg.AimbotTriggerKeybindKeyName) == "string" and Enum.KeyCode[cfg.AimbotTriggerKeybindKeyName] then
-					State.AimbotTriggerKeybindKey = Enum.KeyCode[cfg.AimbotTriggerKeybindKeyName]
-				end
-				if typeof(cfg.AimbotToggleMode) == "boolean" then State.AimbotToggleMode = cfg.AimbotToggleMode end
-				if typeof(cfg.AimbotLockMode) == "string" then State.AimbotLockMode = cfg.AimbotLockMode end
-				if typeof(cfg.AimbotUseCFrame) == "boolean" then State.AimbotUseCFrame = cfg.AimbotUseCFrame end
-				if typeof(cfg.AimbotAimPart) == "string" then State.AimbotAimPart = cfg.AimbotAimPart end
-				if typeof(cfg.AimbotLockOn) == "boolean" then State.AimbotLockOn = cfg.AimbotLockOn end
-				if typeof(cfg.AimbotOffsetToMoveDirection) == "boolean" then State.AimbotOffsetToMoveDirection = cfg.AimbotOffsetToMoveDirection end
-				if typeof(cfg.AimbotOffsetIncrement) == "number" then State.AimbotOffsetIncrement = cfg.AimbotOffsetIncrement end
-				if typeof(cfg.AimbotSensitivity) == "number" then State.AimbotSensitivity = cfg.AimbotSensitivity end
-				if typeof(cfg.AimbotMousemoverSensitivity) == "number" then State.AimbotMousemoverSensitivity = cfg.AimbotMousemoverSensitivity end
-				if typeof(cfg.AimbotPrediction) == "number" then State.AimbotPrediction = cfg.AimbotPrediction end
-				if typeof(cfg.AimbotRainbowSpeed) == "number" then State.AimbotRainbowSpeed = cfg.AimbotRainbowSpeed end
-				if typeof(cfg.AimbotUpdateMode) == "string" then State.AimbotUpdateMode = cfg.AimbotUpdateMode end
-				if typeof(cfg.AimbotTeamCheckOption) == "string" then State.AimbotTeamCheckOption = cfg.AimbotTeamCheckOption end
-
-				if typeof(cfg.AimbotFOVEnabled) == "boolean" then State.AimbotFOVEnabled = cfg.AimbotFOVEnabled end
-				if typeof(cfg.AimbotFOVVisible) == "boolean" then State.AimbotFOVVisible = cfg.AimbotFOVVisible end
-				if typeof(cfg.AimbotFOVFilled) == "boolean" then State.AimbotFOVFilled = cfg.AimbotFOVFilled end
-				if typeof(cfg.AimbotFOVRainbowColor) == "boolean" then State.AimbotFOVRainbowColor = cfg.AimbotFOVRainbowColor end
-				if typeof(cfg.AimbotFOVRainbowOutlineColor) == "boolean" then State.AimbotFOVRainbowOutlineColor = cfg.AimbotFOVRainbowOutlineColor end
-				if typeof(cfg.AimbotFOVRadius) == "number" then State.AimbotFOVRadius = cfg.AimbotFOVRadius end
-				if typeof(cfg.AimbotFOVSides) == "number" then State.AimbotFOVSides = cfg.AimbotFOVSides end
-				if typeof(cfg.AimbotFOVTransparency) == "number" then State.AimbotFOVTransparency = cfg.AimbotFOVTransparency end
-				if typeof(cfg.AimbotFOVThickness) == "number" then State.AimbotFOVThickness = cfg.AimbotFOVThickness end
-				if typeof(cfg.AimbotFOVColorHex) == "string" then
-					local c = _hexToColor3(cfg.AimbotFOVColorHex)
-					if c then State.AimbotFOVColor = c end
-				end
-				if typeof(cfg.AimbotFOVOutlineColorHex) == "string" then
-					local c = _hexToColor3(cfg.AimbotFOVOutlineColorHex)
-					if c then State.AimbotFOVOutlineColor = c end
-				end
-				if typeof(cfg.AimbotFOVLockedColorHex) == "string" then
-					local c = _hexToColor3(cfg.AimbotFOVLockedColorHex)
-					if c then State.AimbotFOVLockedColor = c end
-				end
-
                 if typeof(cfg.CurrentScale) == "number" then State.CurrentScale = cfg.CurrentScale end
                 if typeof(cfg.LastPosX) == "number" and typeof(cfg.LastPosY) == "number" then State.LastPos = UDim2.fromOffset(cfg.LastPosX, cfg.LastPosY) end
 
@@ -149,33 +109,6 @@ return function(ctx)
                 FreecamKeyName = State.FreecamKey and State.FreecamKey.Name or nil,
                 OrbitKeyName = State.OrbitKey and State.OrbitKey.Name or nil,
                 AimbotTriggerKeyName = State.AimbotTriggerKey and State.AimbotTriggerKey.Name or nil,
-				AimbotTriggerChoice = State.AimbotTriggerChoice,
-				AimbotTriggerKeybindKeyName = State.AimbotTriggerKeybindKey and State.AimbotTriggerKeybindKey.Name or nil,
-				AimbotToggleMode = State.AimbotToggleMode,
-				AimbotLockMode = State.AimbotLockMode,
-				AimbotUseCFrame = State.AimbotUseCFrame,
-				AimbotAimPart = State.AimbotAimPart,
-				AimbotLockOn = State.AimbotLockOn,
-				AimbotOffsetToMoveDirection = State.AimbotOffsetToMoveDirection,
-				AimbotOffsetIncrement = State.AimbotOffsetIncrement,
-				AimbotSensitivity = State.AimbotSensitivity,
-				AimbotMousemoverSensitivity = State.AimbotMousemoverSensitivity,
-				AimbotPrediction = State.AimbotPrediction,
-				AimbotRainbowSpeed = State.AimbotRainbowSpeed,
-				AimbotUpdateMode = State.AimbotUpdateMode,
-				AimbotTeamCheckOption = State.AimbotTeamCheckOption,
-				AimbotFOVEnabled = State.AimbotFOVEnabled,
-				AimbotFOVVisible = State.AimbotFOVVisible,
-				AimbotFOVFilled = State.AimbotFOVFilled,
-				AimbotFOVRainbowColor = State.AimbotFOVRainbowColor,
-				AimbotFOVRainbowOutlineColor = State.AimbotFOVRainbowOutlineColor,
-				AimbotFOVRadius = State.AimbotFOVRadius,
-				AimbotFOVSides = State.AimbotFOVSides,
-				AimbotFOVTransparency = State.AimbotFOVTransparency,
-				AimbotFOVThickness = State.AimbotFOVThickness,
-				AimbotFOVColorHex = _color3ToHex(State.AimbotFOVColor),
-				AimbotFOVOutlineColorHex = _color3ToHex(State.AimbotFOVOutlineColor),
-				AimbotFOVLockedColorHex = _color3ToHex(State.AimbotFOVLockedColor),
 
                 CurrentScale = State.CurrentScale,
                 LastPosX = (State.LastPos and State.LastPos.X and State.LastPos.X.Offset) or nil,
@@ -599,10 +532,6 @@ return function(ctx)
             if getgenv().__TEMP_AUTOEXEC_TEST__ then return end
             getgenv().__TEMP_AUTOEXEC_TEST__ = true
             pcall(function()
-                local ts = game:GetService("TeleportService")
-                local td = nil
-                pcall(function() td = ts:GetLocalPlayerTeleportData() end)
-                if typeof(td) ~= "table" or td.AutoExecEnabled ~= true then return end
                 loadstring(game:HttpGet(%q))()
             end)
         ]], url)
@@ -684,7 +613,7 @@ return function(ctx)
 
     local function buildTeleportData()
         return {
-            autoExecute = (State.AutoExecEnabled == true),
+            autoExecute = true,
             keyValidated = State.keyValidated,
             CurrentScale = State.CurrentScale,
             ToggleKeyName = State.ToggleKey.Name,
