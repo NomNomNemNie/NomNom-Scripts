@@ -38,7 +38,6 @@ return function(ctx)
                 if typeof(cfg.LoopGotoKeyName) == "string" and Enum.KeyCode[cfg.LoopGotoKeyName] then State.LoopGotoKey = Enum.KeyCode[cfg.LoopGotoKeyName] end
                 if typeof(cfg.FreecamKeyName) == "string" and Enum.KeyCode[cfg.FreecamKeyName] then State.FreecamKey = Enum.KeyCode[cfg.FreecamKeyName] end
                 if typeof(cfg.OrbitKeyName) == "string" and Enum.KeyCode[cfg.OrbitKeyName] then State.OrbitKey = Enum.KeyCode[cfg.OrbitKeyName] end
-                if typeof(cfg.AimbotKeyName) == "string" and Enum.KeyCode[cfg.AimbotKeyName] then State.AimbotKey = Enum.KeyCode[cfg.AimbotKeyName] end
                 if typeof(cfg.AimbotTriggerKeyName) == "string" then
                     if Enum.KeyCode[cfg.AimbotTriggerKeyName] then
                         State.AimbotTriggerKey = Enum.KeyCode[cfg.AimbotTriggerKeyName]
@@ -109,7 +108,6 @@ return function(ctx)
                 LoopGotoKeyName = State.LoopGotoKey and State.LoopGotoKey.Name or nil,
                 FreecamKeyName = State.FreecamKey and State.FreecamKey.Name or nil,
                 OrbitKeyName = State.OrbitKey and State.OrbitKey.Name or nil,
-                AimbotKeyName = State.AimbotKey and State.AimbotKey.Name or nil,
                 AimbotTriggerKeyName = State.AimbotTriggerKey and State.AimbotTriggerKey.Name or nil,
 
                 CurrentScale = State.CurrentScale,
