@@ -13,6 +13,7 @@ return function(ctx, misc)
 	local _aimAssistConn = nil
 	local _prevMouseBehavior = nil
 	local _toggleInputConn = nil
+	local _aimAssistHBConn = nil
 	local _forcedMouseLock = false
 	local _mouseBehaviorBeforeForce = nil
 	local _mouseIconBeforeForce = nil
@@ -128,7 +129,7 @@ return function(ctx, misc)
 			end
 			Aimbot_FOV.Visible = (State.AimbotFOVVisible ~= false)
 			Aimbot_FOV.Radius = State.AimbotFOVRadius or 100
-			Aimbot_FOV.NumSides = State.AimbotFOVNumSides or 60
+			Aimbot_FOV.NumSides = State.AimbotFOVNumSides or State.AimbotFOVSides or 60
 			Aimbot_FOV.Filled = State.AimbotFOVFilled or false
 			Aimbot_FOV.Transparency = State.AimbotFOVTransparency or 0.5
 			Aimbot_FOV.Thickness = State.AimbotFOVThickness or 1
@@ -256,6 +257,8 @@ return function(ctx, misc)
 			_toggleAimOn = false
 			_prevMouseBehavior = UIS.MouseBehavior
 
+			if _aimAssistHBConn then _aimAssistHBConn:Disconnect() end
+
 			_toggleInputConn = UIS.InputBegan:Connect(function(input, gameProcessed)
 				if gameProcessed then return end
 				if State.AimbotEnabled ~= true then return end
@@ -381,6 +384,19 @@ return function(ctx, misc)
 			if not _aimAssistBound then
 				_aimAssistConn = RunService.RenderStepped:Connect(aimAssistStep)
 			end
+
+			-- Heartbeat fallback to re-assert LockCenter in case another script overrides after RenderStepped.
+			_aimAssistHBConn = RunService.Heartbeat:Connect(function()
+				if _forcedMouseLock and lockMode == 1 then
+					if UIS.MouseBehavior ~= Enum.MouseBehavior.LockCenter then
+						UIS.MouseBehavior = Enum.MouseBehavior.LockCenter
+					end
+					if UIS.MouseIconEnabled ~= nil and UIS.MouseIconEnabled ~= false and _mouseIconBeforeForce == nil then
+						_mouseIconBeforeForce = UIS.MouseIconEnabled
+						UIS.MouseIconEnabled = false
+					end
+				end
+			end)
 		end)
 
 		return true
@@ -499,6 +515,7 @@ return function(ctx, misc)
 
 	function M.setFOVNumSides(sides)
 		State.AimbotFOVNumSides = math.clamp(tonumber(sides) or 60, 3, 128)
+		State.AimbotFOVSides = State.AimbotFOVNumSides
 		if Aimbot_FOV then Aimbot_FOV.NumSides = State.AimbotFOVNumSides end
 	end
 
@@ -590,6 +607,8 @@ return function(ctx, misc)
 			_aimAssistBound = false
 			if _aimAssistConn then _aimAssistConn:Disconnect() end
 			_aimAssistConn = nil
+			if _aimAssistHBConn then _aimAssistHBConn:Disconnect() end
+			_aimAssistHBConn = nil
 			if _toggleInputConn then _toggleInputConn:Disconnect() end
 			_toggleInputConn = nil
 			if UIS and _forcedMouseLock then
