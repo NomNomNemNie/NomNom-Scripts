@@ -18,6 +18,8 @@ return function(ctx, misc)
 	local _mouseIconBeforeForce = nil
 	local _toggleAimOn = false
 	local _restartQueued = false
+	local _aimAssistBoundName = "NomNom_AimbotAimAssist"
+	local _aimAssistBound = false
 
 	local function showRobloxNotification(title, text)
 		return misc.showRobloxNotification(title, text)
@@ -242,6 +244,11 @@ return function(ctx, misc)
 			local Players = Services and Services.Players
 			if typeof(UIS) ~= "Instance" or typeof(RunService) ~= "Instance" or typeof(Players) ~= "Instance" then return end
 
+			pcall(function()
+				RunService:UnbindFromRenderStep(_aimAssistBoundName)
+			end)
+			_aimAssistBound = false
+
 			if _aimAssistConn then _aimAssistConn:Disconnect() end
 			if _toggleInputConn then _toggleInputConn:Disconnect() end
 			_forcedMouseLock = false
@@ -250,6 +257,7 @@ return function(ctx, misc)
 			_prevMouseBehavior = UIS.MouseBehavior
 
 			_toggleInputConn = UIS.InputBegan:Connect(function(input, gameProcessed)
+				if gameProcessed then return end
 				if State.AimbotEnabled ~= true then return end
 				if State.AimbotToggleMode ~= true then return end
 
@@ -267,98 +275,112 @@ return function(ctx, misc)
 				_toggleAimOn = not _toggleAimOn
 			end)
 
-			_aimAssistConn = RunService.RenderStepped:Connect(function()
-				local key = _normalizeTriggerKey(State.AimbotTriggerKey)
-				local down = false
-				if typeof(key) == "EnumItem" then
-					if key.EnumType == Enum.UserInputType then
-						down = UIS:IsMouseButtonPressed(key)
-					elseif key.EnumType == Enum.KeyCode then
-						down = UIS:IsKeyDown(key)
+			local function aimAssistStep()
+				pcall(function()
+					local key = _normalizeTriggerKey(State.AimbotTriggerKey)
+					local down = false
+					if typeof(key) == "EnumItem" then
+						if key.EnumType == Enum.UserInputType then
+							down = UIS:IsMouseButtonPressed(key)
+						elseif key.EnumType == Enum.KeyCode then
+							down = UIS:IsKeyDown(key)
+						end
 					end
-				end
 
-				local rawLockMode = State.AimbotLockMode
-				local lockMode = _normalizeLockMode(rawLockMode)
-				local useCFrame = false
-				if rawLockMode ~= nil then
-					useCFrame = (lockMode == 1)
-				else
-					useCFrame = (State.AimbotUseCFrame == true)
-				end
-
-				local aiming = false
-				local targetPlr = nil
-				local wantLock = false
-				local triggerActive = false
-				if State.AimbotEnabled == true then
-					if State.AimbotToggleMode == true then
-						triggerActive = (_toggleAimOn == true)
+					local rawLockMode = State.AimbotLockMode
+					local lockMode = _normalizeLockMode(rawLockMode)
+					local useCFrame = false
+					if rawLockMode ~= nil then
+						useCFrame = (lockMode == 1)
 					else
-						triggerActive = (down == true)
+						useCFrame = (State.AimbotUseCFrame == true)
 					end
-				end
 
-				if triggerActive then
-					targetPlr = _getClosestTargetInFov()
-					aiming = (targetPlr ~= nil)
-					-- In CFrame mode we want shift-lock style mouse lock while trigger is active.
-					wantLock = (lockMode == 1 and useCFrame)
-				end
-
-				if wantLock then
-					if not _forcedMouseLock then
-						_forcedMouseLock = true
-						if UIS.MouseBehavior ~= Enum.MouseBehavior.LockCenter then
-							_mouseBehaviorBeforeForce = UIS.MouseBehavior
+					local aiming = false
+					local targetPlr = nil
+					local wantLock = false
+					local triggerActive = false
+					if State.AimbotEnabled == true then
+						if State.AimbotToggleMode == true then
+							triggerActive = (_toggleAimOn == true)
 						else
-							_mouseBehaviorBeforeForce = nil
-						end
-						if _mouseIconBeforeForce == nil and UIS.MouseIconEnabled ~= nil then
-							_mouseIconBeforeForce = UIS.MouseIconEnabled
+							triggerActive = (down == true)
 						end
 					end
 
-					if lockMode == 1 then
-						-- Shift-lock style: force lock every frame while trigger is active.
-						UIS.MouseBehavior = Enum.MouseBehavior.LockCenter
-						if UIS.MouseIconEnabled ~= nil then
-							UIS.MouseIconEnabled = false
+					if triggerActive then
+						targetPlr = _getClosestTargetInFov()
+						aiming = (targetPlr ~= nil)
+						-- In CFrame mode we want shift-lock style mouse lock while trigger is active.
+						wantLock = (lockMode == 1 and useCFrame)
+					end
+
+					if wantLock then
+						if not _forcedMouseLock then
+							_forcedMouseLock = true
+							if UIS.MouseBehavior ~= Enum.MouseBehavior.LockCenter then
+								_mouseBehaviorBeforeForce = UIS.MouseBehavior
+							else
+								_mouseBehaviorBeforeForce = nil
+							end
+							if _mouseIconBeforeForce == nil and UIS.MouseIconEnabled ~= nil then
+								_mouseIconBeforeForce = UIS.MouseIconEnabled
+							end
 						end
+
+						if lockMode == 1 then
+							-- Shift-lock style: force lock every frame while trigger is active.
+							UIS.MouseBehavior = Enum.MouseBehavior.LockCenter
+							if UIS.MouseIconEnabled ~= nil then
+								UIS.MouseIconEnabled = false
+							end
+						else
+							if _mouseBehaviorBeforeForce and UIS.MouseBehavior == Enum.MouseBehavior.LockCenter then
+								UIS.MouseBehavior = _mouseBehaviorBeforeForce
+							end
+						end
+
+						-- LockOn rotation handled above for both CFrame and mousemover modes.
 					else
-						if _mouseBehaviorBeforeForce and UIS.MouseBehavior == Enum.MouseBehavior.LockCenter then
-							UIS.MouseBehavior = _mouseBehaviorBeforeForce
+						if _forcedMouseLock then
+							if _mouseBehaviorBeforeForce and UIS.MouseBehavior == Enum.MouseBehavior.LockCenter then
+								UIS.MouseBehavior = _mouseBehaviorBeforeForce
+							end
+							if _mouseIconBeforeForce ~= nil and UIS.MouseIconEnabled ~= nil then
+								UIS.MouseIconEnabled = _mouseIconBeforeForce
+							end
+							_forcedMouseLock = false
+							_mouseBehaviorBeforeForce = nil
+							_mouseIconBeforeForce = nil
 						end
 					end
 
-					-- LockOn rotation handled above for both CFrame and mousemover modes.
-				else
-					if _forcedMouseLock then
-						if _mouseBehaviorBeforeForce and UIS.MouseBehavior == Enum.MouseBehavior.LockCenter then
-							UIS.MouseBehavior = _mouseBehaviorBeforeForce
+					-- In CFrame mode: lock mouse first, then rotate character to face target (lockcam).
+					if triggerActive and aiming and State.AimbotLockOn == true and targetPlr then
+						local char = Players.LocalPlayer and Players.LocalPlayer.Character
+						local hrp = char and char:FindFirstChild("HumanoidRootPart")
+						local tchar = targetPlr.Character
+						local tpart = tchar and (tchar:FindFirstChild("HumanoidRootPart") or tchar:FindFirstChild("Head"))
+						if hrp and tpart then
+							local pos = hrp.Position
+							local look = Vector3.new(tpart.Position.X, pos.Y, tpart.Position.Z)
+							hrp.CFrame = CFrame.new(pos, look)
 						end
-						if _mouseIconBeforeForce ~= nil and UIS.MouseIconEnabled ~= nil then
-							UIS.MouseIconEnabled = _mouseIconBeforeForce
-						end
-						_forcedMouseLock = false
-						_mouseBehaviorBeforeForce = nil
-						_mouseIconBeforeForce = nil
 					end
-				end
+				end)
+			end
 
-				-- In CFrame mode: lock mouse first, then rotate character to face target (lockcam).
-				if triggerActive and aiming and State.AimbotLockOn == true and targetPlr then
-					local char = Players.LocalPlayer and Players.LocalPlayer.Character
-					local hrp = char and char:FindFirstChild("HumanoidRootPart")
-					local tchar = targetPlr.Character
-					local tpart = tchar and (tchar:FindFirstChild("HumanoidRootPart") or tchar:FindFirstChild("Head"))
-					if hrp and tpart then
-						local pos = hrp.Position
-						local look = Vector3.new(tpart.Position.X, pos.Y, tpart.Position.Z)
-						hrp.CFrame = CFrame.new(pos, look)
-					end
-				end
+			local bindPriority = 2000
+			pcall(function()
+				bindPriority = Enum.RenderPriority.Last.Value
 			end)
+			local boundOk = pcall(function()
+				RunService:BindToRenderStep(_aimAssistBoundName, bindPriority, aimAssistStep)
+			end)
+			_aimAssistBound = (boundOk == true)
+			if not _aimAssistBound then
+				_aimAssistConn = RunService.RenderStepped:Connect(aimAssistStep)
+			end
 		end)
 
 		return true
@@ -559,17 +581,32 @@ return function(ctx, misc)
 		end
 		pcall(function()
 			local UIS = Services and Services.UIS
+			local RunService = Services and Services.RunService
+			pcall(function()
+				if typeof(RunService) == "Instance" then
+					RunService:UnbindFromRenderStep(_aimAssistBoundName)
+				end
+			end)
+			_aimAssistBound = false
 			if _aimAssistConn then _aimAssistConn:Disconnect() end
 			_aimAssistConn = nil
 			if _toggleInputConn then _toggleInputConn:Disconnect() end
 			_toggleInputConn = nil
 			if UIS and _forcedMouseLock then
-				if _mouseBehaviorBeforeForce and UIS.MouseBehavior == Enum.MouseBehavior.LockCenter then
-					UIS.MouseBehavior = _mouseBehaviorBeforeForce
+				if UIS.MouseBehavior == Enum.MouseBehavior.LockCenter then
+					if _mouseBehaviorBeforeForce then
+						UIS.MouseBehavior = _mouseBehaviorBeforeForce
+					else
+						UIS.MouseBehavior = Enum.MouseBehavior.Default
+					end
+				end
+				if _mouseIconBeforeForce ~= nil and UIS.MouseIconEnabled ~= nil then
+					UIS.MouseIconEnabled = _mouseIconBeforeForce
 				end
 			end
 			_forcedMouseLock = false
 			_mouseBehaviorBeforeForce = nil
+			_mouseIconBeforeForce = nil
 			_toggleAimOn = false
 		end)
 		Aimbot = nil
