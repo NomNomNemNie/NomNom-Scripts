@@ -359,7 +359,7 @@ return function(ctx, misc)
 					end
 
 					-- In CFrame mode: lock mouse first, then rotate character to face target (lockcam).
-					if triggerActive and aiming and State.AimbotLockOn == true and targetPlr then
+					if triggerActive and aiming and targetPlr and (useCFrame or State.AimbotLockOn == true) then
 						local char = Players.LocalPlayer and Players.LocalPlayer.Character
 						local hrp = char and char:FindFirstChild("HumanoidRootPart")
 						local tchar = targetPlr.Character
