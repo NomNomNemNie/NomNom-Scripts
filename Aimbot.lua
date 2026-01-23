@@ -315,7 +315,7 @@ return function(ctx, misc)
 						targetPlr = _getClosestTargetInFov()
 						aiming = (targetPlr ~= nil)
 						-- In CFrame mode lock mouse only when a target is acquired while trigger is active.
-						wantLock = (lockMode == 1 and useCFrame and aiming)
+						wantLock = (useCFrame and aiming)
 					end
 
 					if wantLock then
@@ -387,7 +387,10 @@ return function(ctx, misc)
 
 			-- Heartbeat fallback to re-assert LockCenter in case another script overrides after RenderStepped.
 			_aimAssistHBConn = RunService.Heartbeat:Connect(function()
-				if _forcedMouseLock and lockMode == 1 then
+				local rawMode = State.AimbotLockMode
+				local mode = _normalizeLockMode(rawMode)
+				local cframeActive = (rawMode ~= nil and mode == 1) or (rawMode == nil and State.AimbotUseCFrame == true)
+				if _forcedMouseLock and cframeActive then
 					if UIS.MouseBehavior ~= Enum.MouseBehavior.LockCenter then
 						UIS.MouseBehavior = Enum.MouseBehavior.LockCenter
 					end
